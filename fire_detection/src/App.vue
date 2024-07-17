@@ -1,21 +1,32 @@
 <template>
-  <div id="app" class="container">
-    <h1>Fire Detection App</h1>
-    <div class="upload-section">
-      <input type="file" @change="onFileChange" />
-      <button @click="uploadImage">Upload</button>
+  <div id="app" class="container mt-5">
+    <h1 class="text-center mb-4">Video Kare Çıkarıcı ve Yangın Tespiti</h1>
+    <div class="upload-section text-center mb-4">
+      <div class="custom-file mb-3">
+        <input type="file" @change="onFileChange" accept=".ts,video/*" class="custom-file-input" id="customFile" />
+        <label class="custom-file-label" for="customFile">{{ videoFile ? videoFile.name : 'Video dosyası seçin (TS dahil)' }}</label>
+      </div>
+      <button @click="uploadVideo" class="btn btn-primary">Videoyu Yükle</button>
     </div>
-    <div v-if="imageUrl" class="image-preview">
-      <h2>Uploaded Image:</h2>
-      <img :src="imageUrl" alt="Uploaded Image" />
+    <div v-if="successMessage" class="alert alert-success text-center">
+      <p>{{ successMessage }}</p>
     </div>
-    <div v-if="result" class="result-section" :class="{'fire-detected': result.predicted_class === 'fire', 'no-fire': result.predicted_class === 'no fire'}">
-      <h2>Result:</h2>
-      <p>Predicted Class: {{ result.predicted_class }}</p>
-      <p>Probability: {{ result.probability }}</p>
+    <div v-if="errorMessage" class="alert alert-danger text-center">
+      <p>{{ errorMessage }}</p>
     </div>
-    <div v-if="error" class="error-section">
-      <p>Error: {{ error }}</p>
+    <div v-if="frames.length" class="frames-section">
+      <h2 class="text-center mb-4">Çıkarılan Kareler</h2>
+      <div class="row">
+        <div v-for="(frame, index) in frames" :key="index" class="col-md-4 mb-4">
+          <div class="card" :class="{'fire-alarm': frame.prediction?.predicted_class === 'fire', 'no-fire': frame.prediction?.predicted_class === 'no fire'}">
+            <img :src="frame.url" class="card-img-top" :alt="'Kare ' + (index + 1)" />
+            <div v-if="frame.prediction" class="card-body">
+              <h5 class="card-title">Tahmin Edilen Sınıf: {{ frame.prediction.predicted_class }}</h5>
+              <p class="card-text">Olasılık: {{ frame.prediction.probability }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -26,40 +37,72 @@ import axios from 'axios';
 export default {
   data() {
     return {
-      imageFile: null,
-      imageUrl: null,
-      result: null,
-      error: null,
+      videoFile: null,
+      successMessage: '',
+      errorMessage: '',
+      frames: [],
     };
   },
   methods: {
     onFileChange(event) {
       const file = event.target.files[0];
       if (file) {
-        this.imageFile = file;
-        this.imageUrl = URL.createObjectURL(file);
+        this.videoFile = file;
       }
     },
-    async uploadImage() {
-      if (!this.imageFile) {
-        alert("Please select an image file first.");
+    async uploadVideo() {
+      if (!this.videoFile) {
+        alert("Lütfen önce bir video dosyası seçin.");
         return;
       }
 
       const formData = new FormData();
-      formData.append('image', this.imageFile);
+      formData.append('video', this.videoFile);
 
       try {
-        const response = await axios.post('http://127.0.0.1:5000/predict', formData, {
+        await axios.post('http://127.0.0.1:5001/upload_video', formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
         });
-        this.result = response.data;
-        this.error = null;
+        this.errorMessage = '';
+        this.successMessage = 'Video başarıyla yüklendi ve kareler çıkarılıyor.';
+        this.fetchFrames();
       } catch (error) {
-        this.error = error.response ? error.response.data : error.message;
-        this.result = null;
+        this.successMessage = '';
+        this.errorMessage = error.response ? error.response.data : error.message;
+      }
+    },
+    async fetchFrames() {
+      // Karelerin çıkarılmasına izin vermek için bir gecikme simüle edin
+      setTimeout(async () => {
+        try {
+          const response = await axios.get('http://127.0.0.1:5001/frames');
+          this.frames = response.data.map((frame) => ({
+            url: `http://127.0.0.1:5001/frames/${frame}`,
+            prediction: null,
+          }));
+          this.frames.forEach(frame => {
+            this.predictFire(frame);
+          });
+        } catch (error) {
+          this.errorMessage = error.response ? error.response.data : error.message;
+        }
+      }, 5000); // 5 saniye gecikme
+    },
+    async predictFire(frame) {
+      try {
+        const formData = new FormData();
+        const response = await axios.get(frame.url, { responseType: 'blob' });
+        formData.append('image', response.data, 'frame.jpg');
+        const predictionResponse = await axios.post('http://127.0.0.1:5000/predict', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        frame.prediction = predictionResponse.data;
+      } catch (error) {
+        this.errorMessage = error.response ? error.response.data : error.message;
       }
     },
   },
@@ -68,43 +111,36 @@ export default {
 
 <style>
 .container {
-  max-width: 600px;
+  max-width: 800px;
   margin: 0 auto;
-  text-align: center;
-  font-family: Arial, sans-serif;
 }
 
-.upload-section {
-  margin-bottom: 20px;
+.card.fire-alarm {
+  border-color: red;
+  animation: blink 1s infinite;
 }
 
-.image-preview {
+.card.no-fire {
+  border-color: green;
+}
+
+.alert {
   margin-top: 20px;
 }
 
-.image-preview img {
-  max-width: 100%;
-  height: auto;
+.custom-file-input ~ .custom-file-label::after {
+  content: "Gözat";
 }
 
-.result-section {
-  margin-top: 20px;
-  padding: 20px;
-  border-radius: 8px;
-}
-
-.result-section.fire-detected {
-  background-color: #ffcccc;
-  color: #cc0000;
-}
-
-.result-section.no-fire {
-  background-color: #ccffcc;
-  color: #006600;
-}
-
-.error-section {
-  margin-top: 20px;
-  color: #cc0000;
+@keyframes blink {
+  0% {
+    border-color: red;
+  }
+  50% {
+    border-color: yellow;
+  }
+  100% {
+    border-color: red;
+  }
 }
 </style>
