@@ -1,11 +1,12 @@
-import os
-import cv2
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import threading
+import os
+import cv2
 
 app = Flask(__name__)
 CORS(app)
+
 
 # Geçici olarak kaydedilecek video dosyasının yolu
 video_save_path = "uploaded_video.ts"

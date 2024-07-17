@@ -8,6 +8,10 @@ import io
 import os
 import requests
 
+app = Flask(__name__)
+CORS(app)
+
+
 # Ortam değişkenini ayarla
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
