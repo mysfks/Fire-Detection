@@ -4,7 +4,6 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
     volumes:
       - ./backend:/app
     ports:
@@ -15,10 +14,9 @@ services:
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: ./fire_detection
     volumes:
-      - ./frontend:/app
+      - ./fire_detection:/app
     ports:
       - "8080:8080"
     depends_on:
