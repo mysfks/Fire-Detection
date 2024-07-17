@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+    networks:
+      - detection-network
+
+  frontend:
+    build:
+      context: ./data_detection
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data_detection:/app
+    networks:
+      - detection-network
+
+networks:
+  detection-network:
+    driver: bridge

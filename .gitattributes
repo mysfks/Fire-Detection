@@ -1,0 +1,17 @@
+# Set default behavior, in case users don't have core.autocrlf set.
+* text=auto
+# Explicitly declare text files you want to always be normalized and converted
+# to native line endings on checkout.
+*.js text
+*.vue text
+*.json text
+*.py text
+# Declare files that will always have LF line endings on checkout.
+*.sh text eol=lf
+*.yml text eol=lf
+# Denote all files that are truly binary and should not be modified.
+*.jpg binary
+*.png binary
+# Denote model files to be handled by LFS.
+*.model filter=lfs diff=lfs merge=lfs -text
+*.h5 filter=lfs diff=lfs merge=lfs -text
