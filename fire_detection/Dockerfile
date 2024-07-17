@@ -1,23 +1,23 @@
-# Use an official Node.js runtime as a parent image
-FROM node:16
+# Temel imaj olarak Node.js kullan
+FROM node:14
 
-# Set the working directory in the container to /app
+# Çalışma dizinini ayarla
 WORKDIR /app
 
-# Copy package.json and package-lock.json into the container at /app
-COPY package*.json ./
+# package.json ve yarn.lock dosyalarını kopyala
+COPY package.json yarn.lock ./
 
-# Install any needed packages
-RUN npm install
+# Bağımlılıkları yükle
+RUN yarn install
 
-# Copy the rest of the application code into the container at /app
+# Uygulama dosyalarını kopyala
 COPY . .
 
-# Build the Vue.js application
-RUN npm run build
+# Uygulamayı derle
+RUN yarn build
 
-# Expose port 8080
+# Uygulamanın servis portunu ayarla
 EXPOSE 8080
 
-# Start the application
-CMD ["npm", "run", "serve"]
+# Uygulamayı başlat
+CMD ["yarn", "serve"]

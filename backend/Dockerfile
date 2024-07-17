@@ -10,9 +10,8 @@ COPY . /app
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose port 5000 and 5001
-EXPOSE 5000
-EXPOSE 5001
+# Expose port 5000 and 5001 for the Flask app
+EXPOSE 5000 5001
 
-# Start the backend servers
-CMD ["sh", "-c", "python fire_detection.py & python video_processing.py"]
+# Start the Flask app
+CMD ["python", "main.py"]
