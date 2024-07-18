@@ -1,26 +1,18 @@
-# frontend/Dockerfile
+# Use the official Python image
+FROM python:3.8-slim
 
-# Base image
-FROM node:16
-
-# Set working directory
+# Set the working directory
 WORKDIR /app
 
-# Install dependencies
-COPY package*.json ./
-RUN npm install
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project files
+# Copy the rest of the application code
 COPY . .
-
-# Build the application
-RUN npm run build
-
-# Install serve to serve the application
-RUN npm install -g serve
 
 # Expose port
 EXPOSE 5000
 
 # Command to run the application
-CMD ["serve", "-s", "dist"]
+CMD ["python", "fire_detection.py"]

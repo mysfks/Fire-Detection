@@ -1,4 +1,4 @@
-# backend1/Dockerfile
+# backend2/Dockerfile
 
 # Use the official Python image
 FROM python:3.8
@@ -14,7 +14,7 @@ RUN pip install -r requirements.txt
 COPY . .
 
 # Expose port
-EXPOSE 5001
+EXPOSE 5000
 
 # Command to run the application
-CMD ["python", "extract_frames.py"]
+CMD ["python", "fire_detection.py"]

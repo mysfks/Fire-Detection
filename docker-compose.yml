@@ -1,31 +1,31 @@
-version: '3.8'
 services:
-  frontend:
-    build:
-      context: ./fire_detection
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./fire_detection:/app
-    networks:
-      - app-network
-
   backend:
     build:
       context: ./backend
+      dockerfile: Dockerfile
     ports:
       - "5001:5001"
-    networks:
-      - app-network
+    volumes:
+      - ./backend:/app
+    environment:
+      - PYTHONUNBUFFERED=1
 
   backend2:
     build:
       context: ./backend2
+      dockerfile: Dockerfile
     ports:
       - "5000:5000"
-    networks:
-      - app-network
+    volumes:
+      - ./backend2:/app
+    environment:
+      - PYTHONUNBUFFERED=1
 
-networks:
-  app-network:
-    driver: bridge
+  frontend:
+    image: node:14
+    working_dir: /app
+    volumes:
+      - ./fire_detection:/app
+    ports:
+      - "8080:8080"
+    command: bash -c "npm install && npm run serve"
