@@ -1,12 +1,12 @@
-version: '3'
+version: '3.8'
 services:
   frontend:
     build:
-      context: ./frontend
+      context: ./fire_detection
     ports:
       - "8080:8080"
     volumes:
-      - ./frontend:/app
+      - ./fire_detection:/app
     networks:
       - app-network
 
