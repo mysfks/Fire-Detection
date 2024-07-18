@@ -4,15 +4,15 @@ services:
     build:
       context: ./frontend
     ports:
-      - "8080:5000"
+      - "8080:8080"
     volumes:
       - ./frontend:/app
     networks:
       - app-network
 
-  backend1:
+  backend:
     build:
-      context: ./backend1
+      context: ./backend
     ports:
       - "5001:5001"
     networks:
