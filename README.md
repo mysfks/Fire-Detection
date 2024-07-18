@@ -16,6 +16,11 @@ This project is a Flask-based web application that extracts frames from an uploa
 3. **Fire Detection**: Each extracted frame is analyzed using a TensorFlow model to detect the presence of fire.
 4. **Telegram Notification**: If fire is detected in any frame, a message is sent to a specified Telegram chat.
 
+## Screenshots
+
+### Extracted Frames and Fire Detection
+![Extracted Frames](https://firebasestorage.googleapis.com/v0/b/chat-api-aa04a.appspot.com/o/Screenshots%2F2024-07-18.png?alt=media&token=65b934c1-04ab-4a62-b945-207151a2c10d)
+
 ## Installation
 
 ### Prerequisites
@@ -94,11 +99,6 @@ This project uses Docker to ensure consistent environments and easy deployment. 
 ├── templates              # HTML templates for the web interface
 └── frames                 # Directory to store extracted frames
 ```
-
-## Screenshots
-
-### Extracted Frames and Fire Detection
-![Extracted Frames](https://firebasestorage.googleapis.com/v0/b/chat-api-aa04a.appspot.com/o/Screenshots%2F2024-07-18.png?alt=media&token=305aeac1-e64c-43bf-8e26-d34b3e923826)
 
 ## Acknowledgements
 
