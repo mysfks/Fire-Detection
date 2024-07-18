@@ -3,3 +3,5 @@ Werkzeug==1.0.1
 tensorflow
 Pillow
 markupsafe==2.0.1
+flask_cors
+opencv-python

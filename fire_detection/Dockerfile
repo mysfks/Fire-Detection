@@ -1,23 +1,26 @@
-# Temel imaj olarak Node.js kullan
-FROM node:14
+# frontend/Dockerfile
 
-# Çalışma dizinini ayarla
+# Base image
+FROM node:16
+
+# Set working directory
 WORKDIR /app
 
-# package.json ve yarn.lock dosyalarını kopyala
-COPY package.json yarn.lock ./
+# Install dependencies
+COPY package*.json ./
+RUN npm install
 
-# Bağımlılıkları yükle
-RUN yarn install
-
-# Uygulama dosyalarını kopyala
+# Copy project files
 COPY . .
 
-# Uygulamayı derle
-RUN yarn build
+# Build the application
+RUN npm run build
 
-# Uygulamanın servis portunu ayarla
-EXPOSE 8080
+# Install serve to serve the application
+RUN npm install -g serve
 
-# Uygulamayı başlat
-CMD ["yarn", "serve"]
+# Expose port
+EXPOSE 5000
+
+# Command to run the application
+CMD ["serve", "-s", "dist"]

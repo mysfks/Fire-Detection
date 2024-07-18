@@ -1,17 +1,20 @@
-# Use an official Python runtime as a parent image
-FROM python:3.8-slim
+# backend1/Dockerfile
 
-# Set the working directory in the container to /app
+# Use the official Python image
+FROM python:3.8
+
+# Set the working directory
 WORKDIR /app
 
-# Copy the current directory contents into the container at /app
-COPY . /app
+# Install dependencies
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy the rest of the application code
+COPY . .
 
-# Expose port 5000 and 5001 for the Flask app
-EXPOSE 5000 5001
+# Expose port
+EXPOSE 5001
 
-# Start the Flask app
-CMD ["python", "main.py"]
+# Command to run the application
+CMD ["python", "extract_frames.py"]
