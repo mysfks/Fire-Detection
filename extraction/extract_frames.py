@@ -3,6 +3,8 @@ import cv2
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import threading
+import shutil
+import time
 
 app = Flask(__name__)
 CORS(app)
@@ -10,10 +12,23 @@ CORS(app)
 # Geçici olarak kaydedilecek video dosyasının yolu
 video_save_path = "uploaded_video.ts"
 output_folder = "frames"  # Karelerin kaydedileceği klasör
+completion_flag = os.path.join(output_folder, "extraction_complete.txt")
 
 # Çıktı klasörünü oluştur
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
+
+def clear_frames_folder():
+    """Karelerin kaydedildiği klasörü temizle"""
+    for filename in os.listdir(output_folder):
+        file_path = os.path.join(output_folder, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print(f"Dosya {file_path} silinirken hata oluştu: {e}")
 
 def extract_frames(video_path, output_folder):
     """Video dosyasından belirli aralıklarla kare yakalar ve kaydeder."""
@@ -51,6 +66,10 @@ def extract_frames(video_path, output_folder):
     cap.release()
     print("İşlem tamamlandı")
 
+    # Bayrak dosyasını oluştur
+    with open(completion_flag, 'w') as f:
+        f.write("completed")
+
 @app.route('/upload_video', methods=['POST'])
 def upload_video():
     """Video dosyasını yükler ve kareleri çıkarır"""
@@ -59,6 +78,9 @@ def upload_video():
         return jsonify({'error': 'No video uploaded'}), 400
 
     file.save(video_save_path)
+
+    # Eski kareleri temizle
+    clear_frames_folder()
 
     # Kare çıkarma iş parçacığını başlat
     thread = threading.Thread(target=extract_frames, args=(video_save_path, output_folder))
@@ -70,7 +92,11 @@ def upload_video():
 def list_frames():
     """Çıkarılan karelerin listesini döndüren endpoint"""
     try:
+        if not os.path.exists(completion_flag):
+            return jsonify({'message': 'Extraction not completed yet'}), 202
         files = os.listdir(output_folder)
+        files = [f for f in files if f != 'extraction_complete.txt']  # Bayrak dosyasını listeden çıkar
+        files.sort(key=lambda f: int(f.split('.')[0]))  # Dosya adlarına göre sırala (örn: 1.jpg, 2.jpg, ...)
         return jsonify(files), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

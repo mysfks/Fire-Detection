@@ -41,6 +41,7 @@ export default {
       successMessage: '',
       errorMessage: '',
       frames: [],
+      loading: false,
     };
   },
   methods: {
@@ -60,6 +61,8 @@ export default {
       formData.append('video', this.videoFile);
 
       try {
+        this.loading = true;
+        this.frames = [];  // Önceki kareleri temizle
         await axios.post('http://127.0.0.1:5001/upload_video', formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
@@ -67,28 +70,33 @@ export default {
         });
         this.errorMessage = '';
         this.successMessage = 'Video başarıyla yüklendi ve kareler çıkarılıyor.';
-        this.fetchFrames();
+        this.checkFrames();  // Kareleri kontrol etmeye başla
       } catch (error) {
         this.successMessage = '';
         this.errorMessage = error.response ? error.response.data : error.message;
       }
     },
-    async fetchFrames() {
-      // Karelerin çıkarılmasına izin vermek için bir gecikme simüle edin
-      setTimeout(async () => {
+    async checkFrames() {
+      // Karelerin çıkarılmasına izin vermek için belirli aralıklarla kontrol et
+      const interval = setInterval(async () => {
         try {
           const response = await axios.get('http://127.0.0.1:5001/frames');
-          this.frames = response.data.map((frame) => ({
-            url: `http://127.0.0.1:5001/frames/${frame}`,
-            prediction: null,
-          }));
-          this.frames.forEach(frame => {
-            this.predictFire(frame);
-          });
+          if (response.status === 200) {
+            this.frames = response.data.map((frame) => ({
+              url: `http://127.0.0.1:5001/frames/${frame}`,
+              prediction: null,
+            }));
+            clearInterval(interval);  // Tüm kareler çıkarıldıktan sonra kontrolü durdur
+            this.frames.forEach(frame => {
+              this.predictFire(frame);
+            });
+          } else if (response.status === 202) {
+            console.log('Kare çıkarma işlemi devam ediyor...');
+          }
         } catch (error) {
           this.errorMessage = error.response ? error.response.data : error.message;
         }
-      }, 5000); // 5 saniye gecikme
+      }, 3000);  // 3 saniye aralıklarla kontrol et
     },
     async predictFire(frame) {
       try {
