@@ -89,15 +89,21 @@ This project uses Docker to ensure consistent environments and easy deployment. 
 
 ```plaintext
 .
-├── app.py                 # Main Flask application for video upload and frame extraction
-├── fire_detection.py      # Flask application for fire detection and Telegram notification
-├── Dockerfile             # Docker configuration for the Flask app
+├── extraction             # Backend for frame extraction
+│   ├── extrac_frames.py   # Frame extraction Flask application
+│   ├── Dockerfile         # Docker configuration for frame extraction
+│   └── requirements.txt   # Python dependencies for frame extraction
+├── prediction             # Backend for fire prediction
+│   ├── fire_detection.py  # Fire detection Flask application
+│   ├── Dockerfile         # Docker configuration for fire detection
+│   └── requirements.txt   # Python dependencies for fire detection
+├── frontend               # Frontend Vue.js application
+│   ├── app.vue            # Main Vue.js component
+│   ├── Dockerfile         # Docker configuration for frontend
+│   └── package.json       # JavaScript dependencies for frontend
 ├── docker-compose.yml     # Docker Compose configuration
 ├── final_model.h5         # Pre-trained model for fire detection
-├── requirements.txt       # Python dependencies
-├── static                 # Static files (CSS, JS)
-├── templates              # HTML templates for the web interface
-└── frames                 # Directory to store extracted frames
+└── README.md              # This file
 ```
 
 ## Acknowledgements
