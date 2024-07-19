@@ -1,5 +1,6 @@
-flask
-flask_cors
-opencv-python
+Flask
+flask-cors
 tensorflow
 Pillow
+requests
+python-dotenv

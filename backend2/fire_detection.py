@@ -7,6 +7,10 @@ from PIL import Image
 import io
 import os
 import requests
+from dotenv import load_dotenv
+
+# Ortam değişkenlerini yükle
+load_dotenv()
 
 # Ortam değişkenini ayarla
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
@@ -38,8 +42,8 @@ def predict_fire(image):
 
 def send_telegram_message(message):
     """Telegram botuna mesaj gönderme"""
-    bot_token = '7320273980:AAE0PUg-wC0DkYUiuQpBjxaqs4DV36hR2co'
-    chat_id = '1010415776'
+    bot_token = os.getenv('BOT_TOKEN')
+    chat_id = os.getenv('CHAT_ID')
     telegram_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     
     try:
