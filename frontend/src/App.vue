@@ -42,6 +42,7 @@ export default {
       errorMessage: '',
       frames: [],
       loading: false,
+      intervalId: null,  // interval ID'yi sakla
     };
   },
   methods: {
@@ -63,6 +64,7 @@ export default {
       try {
         this.loading = true;
         this.frames = [];  // Önceki kareleri temizle
+        this.clearCheckFramesInterval();  // Önceki interval'i temizle
         await axios.post('http://127.0.0.1:5001/upload_video', formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
@@ -76,9 +78,15 @@ export default {
         this.errorMessage = error.response ? error.response.data : error.message;
       }
     },
+    clearCheckFramesInterval() {
+      if (this.intervalId) {
+        clearInterval(this.intervalId);
+        this.intervalId = null;
+      }
+    },
     async checkFrames() {
       // Karelerin çıkarılmasına izin vermek için belirli aralıklarla kontrol et
-      const interval = setInterval(async () => {
+      this.intervalId = setInterval(async () => {
         try {
           const response = await axios.get('http://127.0.0.1:5001/frames');
           if (response.status === 200) {
@@ -86,7 +94,7 @@ export default {
               url: `http://127.0.0.1:5001/frames/${frame}`,
               prediction: null,
             }));
-            clearInterval(interval);  // Tüm kareler çıkarıldıktan sonra kontrolü durdur
+            this.clearCheckFramesInterval();  // Tüm kareler çıkarıldıktan sonra kontrolü durdur
             this.frames.forEach(frame => {
               this.predictFire(frame);
             });
@@ -114,6 +122,9 @@ export default {
       }
     },
   },
+  beforeUnmount() {
+    this.clearCheckFramesInterval();  // Bileşen yok edildiğinde interval'i temizle
+  }
 };
 </script>
 
