@@ -27,6 +27,20 @@ try:
 except Exception as e:
     print(f"Model yüklenirken hata oluştu: {e}")
 
+# Sayaç dosyasının yolunu belirle
+counter_path = "/tmp/counter.txt"
+
+def get_counter():
+    """Sayaç dosyasını oku veya oluştur ve sayaç değerini döndür"""
+    if not os.path.exists(counter_path):
+        with open(counter_path, 'w') as f:
+            f.write('0')
+    with open(counter_path, 'r') as f:
+        count = int(f.read().strip())
+    with open(counter_path, 'w') as f:
+        f.write(str(count + 1))
+    return count
+
 def preprocess_image(image):
     """Resmi ön işleme"""
     image = image.resize((300, 300))
@@ -92,7 +106,8 @@ def predict():
 
         if prediction_class == "fire":
             message = f"Yangın Tespit Edildi! Olasılık: {prediction_prob:.2f}"
-            image_path = "/tmp/detected_fire.jpg"
+            count = get_counter()
+            image_path = f"/tmp/detected_fire_{count}.jpg"
             image.save(image_path)
             send_telegram_message(message, image_path)
 
