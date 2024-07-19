@@ -36,8 +36,13 @@ This project is a Flask-based web application that extracts frames from an uploa
     cd video-fire-detection
     ```
 
-2. Download the pre-trained model from [Kaggle](https://www.kaggle.com/code/jvkchaitanya410/fire-detection-using-resnet-50-accuracy-97/output):
-    - Place the downloaded `final_model.h5` file in the root directory of the project, replacing the original file.
+2. Build and run the Docker containers:
+    ```sh
+    docker-compose up --build
+    ```
+
+   **Note**: During the Docker build process, the `final_model.h5` file will be automatically downloaded from the following link:
+   [Download Model](https://www.kaggleusercontent.com/kf/117604734/eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..W9KC660iyogH7sUxFkdRlQ.tckruepxOxc0F6DGM6gqb7qdqxjlwepbfOxyRCNH5nKJ0-T-UvFYwMyi22dP7ko1GjuXUX7UkyRaMyg4JR2DxWbK2WiP2sQrR2iIxPoYYusu45yQdaRwbelbjchYWm9-EBPGhQXd5Cra8cdJEHItWFKHOWzxU6vTanSVTT5avpqVbcOgEEA_cZxCnX3sjJCxuHfLCmKPCFLYhJyU6oYdyEdOVBZV9pRSbXByw6KZNDpES5OrVCRDOD1DQAN2x83XngwrjrOZfdZGjDi2odFeNrRMFUTpXnmdner9zFfGavnRyHFu25fxAriyWsgF1fBHaX_jukgzBdwKo8L2hnuddyJikVY6z8tHdA6CzyiA1KmhPhW22OWo_BuaEb06bsai69y71EJpU61ptxd2n-9lRm7FLHOa-T2vhrRr2SBL7qGnGcnAEiL8sWPrdtGTDlqqWeXJKZnnXhUHs1mb_XSJ71mUHo23UDSPAHMWep_zUTkzJR751oePDucc8ed18NNJv7JJz0cwJFFY7DAhPgZQUp32EeuIUJVqv6DXzuR6X-EMci0TwxQyJpGUxXhdiCo7aXBPj4u2a1Ztt_TBkSi30BCzzjuW3V6C-kj11kN2L_au5vlK92u9qgz_Tx7wMcwG981WVll25UvXEoXFePj9FS0e1ocgu4pK2mXbG3wHNtc.uTmzotaHMPeYYiUNaKDJ7g/final_model.h5).
 
 3. Build and run the Docker containers:
     ```sh
