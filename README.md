@@ -1,9 +1,3 @@
-Evet, indirme işlemini Dockerfile'da değil de GitHub'dan klonlama sırasında yapmak da mümkün. Bunun için README dosyasına gerekli komutları ekleyebiliriz. Böylece kullanıcılar depoyu klonladıklarında model dosyasını manuel olarak indirebilirler.
-
-İşte bu değişikliklerle güncellenmiş README dosyanız:
-
----
-
 # Video Frame Extraction and Fire Detection
 
 This project is a Flask-based web application that extracts frames from an uploaded video and uses a pre-trained TensorFlow model to detect fire in the frames. If fire is detected, a notification is sent via Telegram. The application is also containerized using Docker for easy deployment.
@@ -119,7 +113,3 @@ This project uses Docker to ensure consistent environments and easy deployment. 
 - The pre-trained fire detection model used in this project can be downloaded from [Kaggle](https://www.kaggleusercontent.com/kf/117604734/eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..W9KC660iyogH7sUxFkdRlQ.tckruepxOxc0F6DGM6gqb7qdqxjlwepbfOxyRCNH5nKJ0-T-UvFYwMyi22dP7ko1GjuXUX7UkyRaMyg4JR2DxWbK2WiP2sQrR2iIxPoYYusu45yQdaRwbelbjchYWm9-EBPGhQXd5Cra8cdJEHItWFKHOWzxU6vTanSVTT5avpqVbcOgEEA_cZxCnX3sjJCxuHfLCmKPCFLYhJyU6oYdyEdOVBZV9pRSbXByw6KZNDpES5OrVCRDOD1DQAN2x83XngwrjrOZfdZGjDi2odFeNrRMFUTpXnmdner9zFfGavnRyHFu25fxAriyWsgF1fBHaX_jukgzBdwKo8L2hnuddyJikVY6z8tHdA6CzyiA1KmhPhW22OWo_BuaEb06bsai69y71EJpU61ptxd2n-9lRm7FLHOa-T2vhrRr2SBL7qGnGcnAEiL8sWPrdtGTDlqqWeXJKZnnXhUHs1mb_XSJ71mUHo23UDSPAHMWep_zUTkzJR751oePDucc8ed18NNJv7JJz0cwJFFY7DAhPgZQUp32EeuIUJVqv6DXzuR6X-EMci0TwxQyJpGUxXhdiCo7aXBPj4u2a1Ztt_TBkSi
 
 30BCzzjuW3V6C-kj11kN2L_au5vlK92u9qgz_Tx7wMcwG981WVll25UvXEoXFePj9FS0e1ocgu4pK2mXbG3wHNtc.uTmzotaHMPeYYiUNaKDJ7g/final_model.h5).
-
----
-
-Bu README dosyası, kullanıcıların projeyi klonladıktan sonra model dosyasını manuel olarak indirmelerini ve doğru konuma yerleştirmelerini sağlar. Bu sayede Dockerfile içinde indirme işlemi yapmanıza gerek kalmaz.
