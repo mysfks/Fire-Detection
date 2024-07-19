@@ -1,5 +1,3 @@
-# backend2/Dockerfile
-
 # Use the official Python image
 FROM python:3.8
 
