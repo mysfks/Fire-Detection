@@ -65,7 +65,7 @@ export default {
         this.loading = true;
         this.frames = [];  // Önceki kareleri temizle
         this.clearCheckFramesInterval();  // Önceki interval'i temizle
-        await axios.post('http://127.0.0.1:5001/upload_video', formData, {
+        await axios.post(`${process.env.VUE_APP_EXTRACTION_API_URL}/upload_video`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
@@ -88,10 +88,10 @@ export default {
       // Karelerin çıkarılmasına izin vermek için belirli aralıklarla kontrol et
       this.intervalId = setInterval(async () => {
         try {
-          const response = await axios.get('http://127.0.0.1:5001/frames');
+          const response = await axios.get(`${process.env.VUE_APP_EXTRACTION_API_URL}/frames`);
           if (response.status === 200) {
             this.frames = response.data.map((frame) => ({
-              url: `http://127.0.0.1:5001/frames/${frame}`,
+              url: `${process.env.VUE_APP_EXTRACTION_API_URL}/frames/${frame}`,
               prediction: null,
             }));
             this.clearCheckFramesInterval();  // Tüm kareler çıkarıldıktan sonra kontrolü durdur
@@ -111,7 +111,7 @@ export default {
         const formData = new FormData();
         const response = await axios.get(frame.url, { responseType: 'blob' });
         formData.append('image', response.data, 'frame.jpg');
-        const predictionResponse = await axios.post('http://127.0.0.1:5000/predict', formData, {
+        const predictionResponse = await axios.post(`${process.env.VUE_APP_PREDICTION_API_URL}/predict`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },

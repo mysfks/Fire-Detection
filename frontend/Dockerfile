@@ -1,18 +1,30 @@
-# Use the official Python image
-FROM python:3.8-slim
+# Node.js imajını kullanarak başlıyoruz
+FROM node:14
 
-# Set the working directory
+# Çalışma dizinini ayarla
 WORKDIR /app
 
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Bağımlılıkları kopyala ve yükle
+COPY package*.json ./
+RUN npm install
 
-# Copy the rest of the application code
+# Uygulama kodunu kopyala
 COPY . .
 
-# Expose port
-EXPOSE 5000
+# .env dosyasını kopyala
+COPY .env .env
 
-# Command to run the application
-CMD ["python", "fire_detection.py"]
+# Ortam değişkenlerini yükle
+ARG VUE_APP_EXTRACTION_API_URL
+ARG VUE_APP_PREDICTION_API_URL
+ENV VUE_APP_EXTRACTION_API_URL $VUE_APP_EXTRACTION_API_URL
+ENV VUE_APP_PREDICTION_API_URL $VUE_APP_PREDICTION_API_URL
+
+# Uygulamayı derle
+RUN npm run build
+
+# Uygulama portunu belirt
+EXPOSE 8080
+
+# Uygulamayı başlat
+CMD ["npm", "run", "serve"]
