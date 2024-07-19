@@ -1,5 +1,7 @@
+version: '3.8'
+
 services:
-  backend:
+  extraction_api:
     build:
       context: ./extraction
       dockerfile: Dockerfile
@@ -9,8 +11,10 @@ services:
       - ./extraction:/app
     environment:
       - PYTHONUNBUFFERED=1
+    env_file:
+      - .env  # .env dosyasını backend servisine ekle
 
-  backend2:
+  prediction_api:
     build:
       context: ./prediction
       dockerfile: Dockerfile
@@ -20,6 +24,8 @@ services:
       - ./prediction:/app
     environment:
       - PYTHONUNBUFFERED=1
+    env_file:
+      - .env  # .env dosyasını backend2 servisine ekle
 
   frontend:
     image: node:14
@@ -29,3 +35,5 @@ services:
     ports:
       - "8080:8080"
     command: bash -c "npm install && npm run serve"
+    env_file:
+      - .env  # .env dosyasını frontend servisine ekle (eğer gerekiyorsa)
