@@ -1,23 +1,23 @@
 services:
   backend:
     build:
-      context: ./backend
+      context: ./extraction
       dockerfile: Dockerfile
     ports:
       - "5001:5001"
     volumes:
-      - ./backend:/app
+      - ./extraction:/app
     environment:
       - PYTHONUNBUFFERED=1
 
   backend2:
     build:
-      context: ./backend2
+      context: ./prediction
       dockerfile: Dockerfile
     ports:
       - "5000:5000"
     volumes:
-      - ./backend2:/app
+      - ./prediction:/app
     environment:
       - PYTHONUNBUFFERED=1
 
@@ -25,7 +25,7 @@ services:
     image: node:14
     working_dir: /app
     volumes:
-      - ./fire_detection:/app
+      - ./frontend:/app
     ports:
       - "8080:8080"
     command: bash -c "npm install && npm run serve"
