@@ -6,13 +6,19 @@
         <input type="file" @change="onFileChange" accept=".ts,video/*" class="custom-file-input" id="customFile" />
         <label class="custom-file-label" for="customFile">{{ videoFile ? videoFile.name : 'Video dosyası seçin (TS dahil)' }}</label>
       </div>
-      <button @click="uploadVideo" class="btn btn-primary">Videoyu Yükle</button>
+      <button @click="uploadVideo" class="btn btn-primary" :disabled="isLoading || isPredicting">Videoyu Yükle</button>
     </div>
     <div v-if="successMessage" class="alert alert-success text-center">
       <p>{{ successMessage }}</p>
     </div>
     <div v-if="errorMessage" class="alert alert-danger text-center">
       <p>{{ errorMessage }}</p>
+    </div>
+    <div v-if="isLoading || isPredicting" class="loading text-center mb-4">
+      <p>Yükleniyor...</p>
+      <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+      </div>
     </div>
     <div v-if="frames.length" class="frames-section">
       <h2 class="text-center mb-4">Çıkarılan Kareler</h2>
@@ -42,7 +48,9 @@ export default {
       errorMessage: '',
       frames: [],
       loading: false,
-      intervalId: null,  // interval ID'yi sakla
+      intervalId: null,
+      isLoading: false,
+      isPredicting: false
     };
   },
   methods: {
@@ -62,9 +70,9 @@ export default {
       formData.append('video', this.videoFile);
 
       try {
-        this.loading = true;
-        this.frames = [];  // Önceki kareleri temizle
-        this.clearCheckFramesInterval();  // Önceki interval'i temizle
+        this.isLoading = true;
+        this.frames = [];
+        this.clearCheckFramesInterval();
         await axios.post(`${process.env.VUE_APP_EXTRACTION_API_URL}/upload_video`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
@@ -72,7 +80,7 @@ export default {
         });
         this.errorMessage = '';
         this.successMessage = 'Video başarıyla yüklendi ve kareler çıkarılıyor.';
-        this.checkFrames();  // Kareleri kontrol etmeye başla
+        this.checkFrames();
       } catch (error) {
         this.successMessage = '';
         this.errorMessage = error.response ? error.response.data : error.message;
@@ -85,7 +93,6 @@ export default {
       }
     },
     async checkFrames() {
-      // Karelerin çıkarılmasına izin vermek için belirli aralıklarla kontrol et
       this.intervalId = setInterval(async () => {
         try {
           const response = await axios.get(`${process.env.VUE_APP_EXTRACTION_API_URL}/frames`);
@@ -94,17 +101,21 @@ export default {
               url: `${process.env.VUE_APP_EXTRACTION_API_URL}/frames/${frame}`,
               prediction: null,
             }));
-            this.clearCheckFramesInterval();  // Tüm kareler çıkarıldıktan sonra kontrolü durdur
-            this.frames.forEach(frame => {
-              this.predictFire(frame);
-            });
+            this.clearCheckFramesInterval();
+            this.isPredicting = true;
+            for (let frame of this.frames) {
+              await this.predictFire(frame);
+            }
+            this.isPredicting = false;
           } else if (response.status === 202) {
             console.log('Kare çıkarma işlemi devam ediyor...');
           }
         } catch (error) {
           this.errorMessage = error.response ? error.response.data : error.message;
+        } finally {
+          this.isLoading = false;
         }
-      }, 3000);  // 3 saniye aralıklarla kontrol et
+      }, 3000);
     },
     async predictFire(frame) {
       try {
@@ -123,7 +134,7 @@ export default {
     },
   },
   beforeUnmount() {
-    this.clearCheckFramesInterval();  // Bileşen yok edildiğinde interval'i temizle
+    this.clearCheckFramesInterval();
   }
 };
 </script>
@@ -149,6 +160,10 @@ export default {
 
 .custom-file-input ~ .custom-file-label::after {
   content: "Gözat";
+}
+
+.loading {
+  margin-top: 20px;
 }
 
 @keyframes blink {
