@@ -24,11 +24,12 @@
       <h2 class="text-center mb-4">Çıkarılan Kareler</h2>
       <div class="row">
         <div v-for="(frame, index) in frames" :key="index" class="col-md-4 mb-4">
-          <div class="card" :class="{'fire-alarm': frame.prediction?.predicted_class === 'fire', 'no-fire': frame.prediction?.predicted_class === 'no fire'}">
+          <div :class="['card', getRiskClass(frame.prediction)]">
             <img :src="frame.url" class="card-img-top" :alt="'Kare ' + (index + 1)" />
             <div v-if="frame.prediction" class="card-body">
               <h5 class="card-title">Tahmin Edilen Sınıf: {{ frame.prediction.predicted_class }}</h5>
-              <p class="card-text">Olasılık: {{ frame.prediction.probability }}</p>
+              <p class="card-text">Olasılık: {{ formatProbability(frame.prediction.probability) }}</p>
+              <p class="card-text">{{ getRiskLevel(frame.prediction) }}</p>
             </div>
           </div>
         </div>
@@ -132,6 +133,25 @@ export default {
         this.errorMessage = error.response ? error.response.data : error.message;
       }
     },
+    getRiskClass(prediction) {
+      if (!prediction) return '';
+      const probability = prediction.probability;
+      if (probability >= 0.9) return 'very-high-risk';
+      if (probability >= 0.7) return 'high-risk';
+      if (probability >= 0.5) return 'risky';
+      return 'no-fire';
+    },
+    getRiskLevel(prediction) {
+      if (!prediction) return '';
+      const probability = prediction.probability;
+      if (probability >= 0.9) return 'Çok Yüksek Risk';
+      if (probability >= 0.7) return 'Yüksek Risk';
+      if (probability >= 0.5) return 'Riskli';
+      return 'Yangın Yok';
+    },
+    formatProbability(probability) {
+      return (probability * 100).toFixed(2) + '%';
+    }
   },
   beforeUnmount() {
     this.clearCheckFramesInterval();
@@ -140,6 +160,24 @@ export default {
 </script>
 
 <style>
+.card.very-high-risk {
+  border-color: red;
+  background-color: rgba(255, 0, 0, 0.1);
+  color: red;
+}
+
+.card.high-risk {
+  border-color: orange;
+  background-color: rgba(255, 165, 0, 0.1);
+  color: orange;
+}
+
+.card.risky {
+  border-color: yellow;
+  background-color: rgba(255, 255, 0, 0.1);
+  color: yellow;
+}
+
 .container {
   max-width: 800px;
   margin: 0 auto;

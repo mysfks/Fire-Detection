@@ -55,7 +55,7 @@ def predict_fire(image):
     processed_image = preprocess_image(image)
     predictions = model.predict(processed_image)
     fire_prob = predictions[0][0]
-    return ("fire", fire_prob) if fire_prob >= 0.5 else ("no fire", 1 - fire_prob)
+    return ("fire", fire_prob) if fire_prob >= 0.5 else ("no fire", fire_prob)
 
 def send_telegram_message(message, image_path):
     """Telegram botuna mesaj gönderme"""
