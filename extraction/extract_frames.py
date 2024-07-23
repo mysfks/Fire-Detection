@@ -4,7 +4,10 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import threading
 import shutil
-import time
+from dotenv import load_dotenv
+
+# .env dosyasını yükle
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
@@ -44,8 +47,9 @@ def extract_frames(video_path, output_folder):
 
     print(f"Video süresi: {minutes} dakika")
 
-    # Her dakika bir kare almak için gerekli kare sayısı
-    capture_interval_frames = frame_rate * 60
+    # Ortam değişkeninden kare yakalama aralığını al
+    capture_interval_seconds = int(os.getenv("CAPTURE_INTERVAL_SECONDS", 60))
+    capture_interval_frames = frame_rate * capture_interval_seconds
 
     frame_number = 0
     image_number = 1
