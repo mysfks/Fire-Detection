@@ -24,7 +24,7 @@
             </a>
             <div class="card-body">
               <h5 class="card-title">Görüntü Zamanı: {{ formatTimestamp(frame.timestamp) }}</h5>
-              <p class="card-text">IP Adresi: {{ frame.ip }}</p>
+              <p class="card-text">IP Adresi: {{ rtspIp }}</p>
               <div v-if="frame.prediction">
                 <h5 class="card-title">Tahmin Edilen Sınıf: {{ frame.prediction.predicted_class }}</h5>
                 <p class="card-text">Olasılık: {{ formatProbability(frame.prediction.probability) }}</p>
@@ -51,6 +51,9 @@ export default {
     const intervalId = ref(null);
     const isPredicting = ref(false);
 
+    const rtspIp = process.env.VUE_APP_RTSP_IP;
+    
+
     const setCaptureInterval = async () => {
       try {
         const response = await axios.post(`${process.env.VUE_APP_EXTRACTION_API_URL}/set_interval`, { interval: interval.value });
@@ -73,8 +76,8 @@ export default {
 
     const startCapturingFrames = () => {
       clearCheckFramesInterval();
-      checkFrames(); // İlk kareleri hemen kontrol et
-      intervalId.value = setInterval(checkFrames, 5000); // Her 5 saniyede bir kareleri kontrol et
+      checkFrames();
+      intervalId.value = setInterval(checkFrames, 5000);
     };
 
     const checkFrames = async () => {
@@ -84,8 +87,8 @@ export default {
           frames.value = response.data.map((frame) => ({
             url: `${process.env.VUE_APP_EXTRACTION_API_URL}/frames/${frame}`,
             prediction: null,
-            timestamp: frame.split('_')[1].split('.')[0], // Zaman damgasını ayıkla
-            ip: '10.0.66.195' // IP adresini sabit olarak ekle
+            timestamp: frame.split('_')[1].split('.')[0],
+            ip: rtspIp
           })).reverse();
           isPredicting.value = true;
           for (let frame of frames.value) {
@@ -164,7 +167,8 @@ export default {
       getRiskClass,
       getRiskLevel,
       formatProbability,
-      formatTimestamp
+      formatTimestamp,
+      rtspIp
     };
   }
 };
