@@ -25,8 +25,13 @@ for folder in [output_folder, fire_detected_folder]:
     if not os.path.exists(folder):
         os.makedirs(folder)
 
-# RTSP URL'nizi buraya girin (kullanıcı adı, şifre ve IP adresini doğru bir şekilde belirtin)
-rtsp_url = 'rtsp://erpstajyer:YYQy;LJ7l0@10.0.66.195:554/Streaming/Channels/101'
+# RTSP URL bilgilerini .env dosyasından al
+rtsp_user = os.getenv("RTSP_USER")
+rtsp_password = os.getenv("RTSP_PASSWORD")
+rtsp_ip = os.getenv("RTSP_IP")
+rtsp_port = os.getenv("RTSP_PORT")
+rtsp_path = os.getenv("RTSP_PATH")
+rtsp_url = f'rtsp://{rtsp_user}:{rtsp_password}@{rtsp_ip}:{rtsp_port}/{rtsp_path}'
 
 capture_interval = 20  # Varsayılan kare alma aralığı
 interval_lock = threading.Lock()
@@ -139,7 +144,7 @@ def predict():
 
         # Telegram mesajı gönder
         risk_level = 'Çok Yüksek Risk' if fire_detected else 'Yangın Yok'
-        message = f"Kamera IP: {rtsp_url}\nZaman: {timestamp}\nRisk Seviyesi: {risk_level}"
+        message = f"Kamera IP: {rtsp_ip}\nZaman: {timestamp}\nRisk Seviyesi: {risk_level}"
         send_telegram_message(message)
     
     return jsonify({'message': 'Prediction completed.'}), 200
