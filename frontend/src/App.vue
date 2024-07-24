@@ -9,15 +9,19 @@
     </div>
     <div class="mb-4 text-center">
       <label for="interval-input" class="form-label">Kaç saniyede bir kare alınsın?</label>
-      <input type="number" id="interval-input" v-model.number="interval" class="form-control w-25 mx-auto" min="1" />
-      <button class="btn btn-primary mt-2" @click="startCapturingFrames">Başlat</button>
+      <div class="input-group w-50 mx-auto">
+        <input type="number" id="interval-input" v-model.number="interval" class="form-control" min="1" />
+        <button class="btn btn-primary" @click="setCaptureInterval">Güncelle</button>
+      </div>
     </div>
     <div v-if="frames.length" class="frames-section">
       <h2 class="text-center mb-4">Çıkarılan Kareler</h2>
       <div class="row">
-        <div v-for="(frame, index) in frames" :key="index" class="col-md-4 mb-4">
-          <div :class="['card', getRiskClass(frame.prediction)]">
-            <img :src="frame.url" class="card-img-top" :alt="'Kare ' + (index + 1)" />
+        <div v-for="(frame, index) in frames" :key="index" class="col-12 mb-4">
+          <div :class="['card', getRiskClass(frame.prediction), 'shadow-sm', 'p-3', 'mb-5', 'bg-white', 'rounded']">
+            <a :href="frame.url" target="_blank" rel="noopener noreferrer">
+              <img :src="frame.url" class="card-img-top" :alt="'Kare ' + (index + 1)" />
+            </a>
             <div class="card-body">
               <h5 class="card-title">Görüntü Zamanı: {{ formatTimestamp(frame.timestamp) }}</h5>
               <p class="card-text">IP Adresi: {{ frame.ip }}</p>
@@ -36,55 +40,69 @@
 
 <script>
 import axios from 'axios';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 
 export default {
-  data() {
-    return {
-      successMessage: '',
-      errorMessage: '',
-      frames: [],
-      interval: 20, // Varsayılan kare alma aralığı
-      intervalId: null,
-      isPredicting: false
-    };
-  },
-  methods: {
-    clearCheckFramesInterval() {
-      if (this.intervalId) {
-        clearInterval(this.intervalId);
-        this.intervalId = null;
+  setup() {
+    const successMessage = ref('');
+    const errorMessage = ref('');
+    const frames = ref([]);
+    const interval = ref(20);
+    const intervalId = ref(null);
+    const isPredicting = ref(false);
+
+    const setCaptureInterval = async () => {
+      try {
+        const response = await axios.post(`${process.env.VUE_APP_EXTRACTION_API_URL}/set_interval`, { interval: interval.value });
+        successMessage.value = response.data.message;
+        errorMessage.value = '';
+        console.log('Interval set to:', interval.value);
+      } catch (error) {
+        errorMessage.value = error.response ? error.response.data.error : error.message;
+        successMessage.value = '';
+        console.error('Error setting interval:', error);
       }
-    },
-    startCapturingFrames() {
-      this.clearCheckFramesInterval();
-      this.checkFrames(); // İlk kareleri hemen kontrol et
-      this.intervalId = setInterval(this.checkFrames, this.interval * 1000); // Kullanıcı belirlediği aralıkta kareleri kontrol et
-    },
-    async checkFrames() {
+    };
+
+    const clearCheckFramesInterval = () => {
+      if (intervalId.value) {
+        clearInterval(intervalId.value);
+        intervalId.value = null;
+      }
+    };
+
+    const startCapturingFrames = () => {
+      clearCheckFramesInterval();
+      checkFrames(); // İlk kareleri hemen kontrol et
+      intervalId.value = setInterval(checkFrames, 5000); // Her 5 saniyede bir kareleri kontrol et
+    };
+
+    const checkFrames = async () => {
       try {
         const response = await axios.get(`${process.env.VUE_APP_EXTRACTION_API_URL}/frames`);
         if (response.status === 200) {
-          this.frames = response.data.map((frame) => ({
+          frames.value = response.data.map((frame) => ({
             url: `${process.env.VUE_APP_EXTRACTION_API_URL}/frames/${frame}`,
             prediction: null,
             timestamp: frame.split('_')[1].split('.')[0], // Zaman damgasını ayıkla
             ip: '10.0.66.195' // IP adresini sabit olarak ekle
-          }));
-          this.isPredicting = true;
-          for (let frame of this.frames) {
+          })).reverse();
+          isPredicting.value = true;
+          for (let frame of frames.value) {
             if (!frame.prediction) {
-              await this.predictFire(frame);
+              await predictFire(frame);
             }
           }
-          this.isPredicting = false;
+          isPredicting.value = false;
         } else if (response.status === 202) {
           console.log('Kare çıkarma işlemi devam ediyor...');
         }
       } catch (error) {
-        this.errorMessage = error.response ? error.response.data : error.message;
+        errorMessage.value = error.response ? error.response.data : error.message;
       }
-    },
-    async predictFire(frame) {
+    };
+
+    const predictFire = async (frame) => {
       if (frame.prediction) return;
 
       try {
@@ -98,38 +116,56 @@ export default {
         });
         frame.prediction = predictionResponse.data;
       } catch (error) {
-        this.errorMessage = error.response ? error.response.data : error.message;
+        errorMessage.value = error.response ? error.response.data : error.message;
       }
-    },
-    getRiskClass(prediction) {
+    };
+
+    const getRiskClass = (prediction) => {
       if (!prediction) return '';
       const probability = prediction.probability;
       if (probability >= 0.9) return 'very-high-risk';
       if (probability >= 0.7) return 'high-risk';
       if (probability >= 0.5) return 'risky';
       return 'no-fire';
-    },
-    getRiskLevel(prediction) {
+    };
+
+    const getRiskLevel = (prediction) => {
       if (!prediction) return '';
       const probability = prediction.probability;
       if (probability >= 0.9) return 'Çok Yüksek Risk';
       if (probability >= 0.7) return 'Yüksek Risk';
       if (probability >= 0.5) return 'Riskli';
       return 'Yangın Yok';
-    },
-    formatProbability(probability) {
+    };
+
+    const formatProbability = (probability) => {
       return (probability * 100).toFixed(2) + '%';
-    },
-    formatTimestamp(timestamp) {
+    };
+
+    const formatTimestamp = (timestamp) => {
       const date = new Date(`${timestamp.slice(0, 4)}-${timestamp.slice(4, 6)}-${timestamp.slice(6, 8)}T${timestamp.slice(9, 11)}:${timestamp.slice(11, 13)}:${timestamp.slice(13, 15)}`);
       return date.toLocaleString();
-    }
-  },
-  mounted() {
-    this.startCapturingFrames();
-  },
-  beforeUnmount() {
-    this.clearCheckFramesInterval();
+    };
+
+    onMounted(() => {
+      startCapturingFrames();
+    });
+
+    onBeforeUnmount(() => {
+      clearCheckFramesInterval();
+    });
+
+    return {
+      successMessage,
+      errorMessage,
+      frames,
+      interval,
+      setCaptureInterval,
+      getRiskClass,
+      getRiskLevel,
+      formatProbability,
+      formatTimestamp
+    };
   }
 };
 </script>
@@ -144,42 +180,50 @@ export default {
 .card.high-risk {
   border-color: orange;
   background-color: rgba(255, 165, 0, 0.1);
-  color: orange
+  color: orange;
 }
 
 .card.risky {
   border-color: yellow;
   background-color: rgba(255, 255, 0, 0.1);
-  color: yellow
+  color: yellow;
 }
 
-.container {
-  max-width: 800px;
-  margin: 0 auto
+.card.no-fire {
+  border-color: green;
 }
 
 .card.fire-alarm {
   border-color: red;
-  animation: blink 1s infinite
+  animation: blink 1s infinite;
 }
 
-.card.no-fire {
-  border-color: green
+.container {
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .alert {
-  margin-top: 20px
+  margin-top: 20px;
+}
+
+.card {
+  transition: all 0.3s ease-in-out;
+}
+
+.card:hover {
+  transform: scale(1.05);
 }
 
 @keyframes blink {
   0% {
-    border-color: red
+    border-color: red;
   }
   50% {
-    border-color: yellow
+    border-color: yellow;
   }
   100% {
-    border-color: red
+    border-color: red;
   }
 }
 </style>

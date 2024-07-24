@@ -7,6 +7,7 @@ import threading
 from datetime import datetime
 from dotenv import load_dotenv
 import shutil
+import requests
 
 # .env dosyasını yükle
 load_dotenv()
@@ -28,6 +29,15 @@ for folder in [output_folder, fire_detected_folder]:
 rtsp_url = 'rtsp://erpstajyer:YYQy;LJ7l0@10.0.66.195:554/Streaming/Channels/101'
 
 capture_interval = 20  # Varsayılan kare alma aralığı
+interval_lock = threading.Lock()
+
+telegram_token = os.getenv("BOT_TOKEN")
+chat_id = os.getenv("CHAT_ID")
+
+def send_telegram_message(message):
+    url = f"https://api.telegram.org/bot{telegram_token}/sendMessage"
+    data = {"chat_id": chat_id, "text": message}
+    requests.post(url, data=data)
 
 def clear_old_frames():
     """Karelerin kaydedildiği klasörü temizle"""
@@ -41,7 +51,6 @@ def clear_old_frames():
                 os.remove(file_path)
 
 def capture_image_from_stream():
-    global rtsp_url
     cap = cv2.VideoCapture(rtsp_url)
     if not cap.isOpened():
         print("Kamera bağlantısı kurulamadı.")
@@ -60,10 +69,18 @@ def capture_image_from_stream():
     cap.release()
 
 def capture_images_periodically():
+    global capture_interval
     while True:
+        with interval_lock:
+            interval = capture_interval
         capture_image_from_stream()
         clear_old_frames()
-        time.sleep(capture_interval)
+        for _ in range(interval):
+            time.sleep(1)
+            with interval_lock:
+                new_interval = capture_interval
+                if new_interval != interval:
+                    break
 
 @app.route('/frames', methods=['GET'])
 def list_frames():
@@ -84,12 +101,17 @@ def set_interval():
     try:
         data = request.get_json()
         interval = data.get('interval')
+        print(f"Received interval: {interval}")
         if interval and isinstance(interval, int) and interval > 0:
-            capture_interval = interval
+            with interval_lock:
+                capture_interval = interval
+            print(f"Updated capture interval to: {capture_interval}")
             return jsonify({'message': 'Interval updated successfully.'}), 200
         else:
+            print("Invalid interval value received.")
             return jsonify({'error': 'Invalid interval value.'}), 400
     except Exception as e:
+        print(f"Error setting interval: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/predict', methods=['POST'])
@@ -114,6 +136,11 @@ def predict():
         shutil.copy(img_path, fire_img_path)
         os.chmod(fire_img_path, 0o777)
         print(f'{img_name} yangın tespit edildi ve {fire_detected_folder} klasörüne kaydedildi.')
+
+        # Telegram mesajı gönder
+        risk_level = 'Çok Yüksek Risk' if fire_detected else 'Yangın Yok'
+        message = f"Kamera IP: {rtsp_url}\nZaman: {timestamp}\nRisk Seviyesi: {risk_level}"
+        send_telegram_message(message)
     
     return jsonify({'message': 'Prediction completed.'}), 200
 
