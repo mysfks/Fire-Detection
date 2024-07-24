@@ -1,24 +1,16 @@
 <template>
   <div id="app" class="container mt-5">
     <h1 class="text-center mb-4">Video Kare Çıkarıcı ve Yangın Tespiti</h1>
-    <div class="upload-section text-center mb-4">
-      <div class="custom-file mb-3">
-        <input type="file" @change="onFileChange" accept=".ts,video/*" class="custom-file-input" id="customFile" />
-        <label class="custom-file-label" for="customFile">{{ videoFile ? videoFile.name : 'Video dosyası seçin (TS dahil)' }}</label>
-      </div>
-      <button @click="uploadVideo" class="btn btn-primary" :disabled="isLoading || isPredicting">Videoyu Yükle</button>
-    </div>
     <div v-if="successMessage" class="alert alert-success text-center">
       <p>{{ successMessage }}</p>
     </div>
     <div v-if="errorMessage" class="alert alert-danger text-center">
       <p>{{ errorMessage }}</p>
     </div>
-    <div v-if="isLoading || isPredicting" class="loading text-center mb-4">
-      <p>Yükleniyor...</p>
-      <div class="spinner-border" role="status">
-        <span class="sr-only">Loading...</span>
-      </div>
+    <div class="mb-4 text-center">
+      <label for="interval-input" class="form-label">Kaç saniyede bir kare alınsın?</label>
+      <input type="number" id="interval-input" v-model.number="interval" class="form-control w-25 mx-auto" min="1" />
+      <button class="btn btn-primary mt-2" @click="startCapturingFrames">Başlat</button>
     </div>
     <div v-if="frames.length" class="frames-section">
       <h2 class="text-center mb-4">Çıkarılan Kareler</h2>
@@ -26,10 +18,14 @@
         <div v-for="(frame, index) in frames" :key="index" class="col-md-4 mb-4">
           <div :class="['card', getRiskClass(frame.prediction)]">
             <img :src="frame.url" class="card-img-top" :alt="'Kare ' + (index + 1)" />
-            <div v-if="frame.prediction" class="card-body">
-              <h5 class="card-title">Tahmin Edilen Sınıf: {{ frame.prediction.predicted_class }}</h5>
-              <p class="card-text">Olasılık: {{ formatProbability(frame.prediction.probability) }}</p>
-              <p class="card-text">{{ getRiskLevel(frame.prediction) }}</p>
+            <div class="card-body">
+              <h5 class="card-title">Görüntü Zamanı: {{ formatTimestamp(frame.timestamp) }}</h5>
+              <p class="card-text">IP Adresi: {{ frame.ip }}</p>
+              <div v-if="frame.prediction">
+                <h5 class="card-title">Tahmin Edilen Sınıf: {{ frame.prediction.predicted_class }}</h5>
+                <p class="card-text">Olasılık: {{ formatProbability(frame.prediction.probability) }}</p>
+                <p class="card-text">{{ getRiskLevel(frame.prediction) }}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -44,81 +40,53 @@ import axios from 'axios';
 export default {
   data() {
     return {
-      videoFile: null,
       successMessage: '',
       errorMessage: '',
       frames: [],
-      loading: false,
+      interval: 20, // Varsayılan kare alma aralığı
       intervalId: null,
-      isLoading: false,
       isPredicting: false
     };
   },
   methods: {
-    onFileChange(event) {
-      const file = event.target.files[0];
-      if (file) {
-        this.videoFile = file;
-      }
-    },
-    async uploadVideo() {
-      if (!this.videoFile) {
-        alert("Lütfen önce bir video dosyası seçin.");
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append('video', this.videoFile);
-
-      try {
-        this.isLoading = true;
-        this.frames = [];
-        this.clearCheckFramesInterval();
-        await axios.post(`${process.env.VUE_APP_EXTRACTION_API_URL}/upload_video`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-        this.errorMessage = '';
-        this.successMessage = 'Video başarıyla yüklendi ve kareler çıkarılıyor.';
-        this.checkFrames();
-      } catch (error) {
-        this.successMessage = '';
-        this.errorMessage = error.response ? error.response.data : error.message;
-      }
-    },
     clearCheckFramesInterval() {
       if (this.intervalId) {
         clearInterval(this.intervalId);
         this.intervalId = null;
       }
     },
+    startCapturingFrames() {
+      this.clearCheckFramesInterval();
+      this.checkFrames(); // İlk kareleri hemen kontrol et
+      this.intervalId = setInterval(this.checkFrames, this.interval * 1000); // Kullanıcı belirlediği aralıkta kareleri kontrol et
+    },
     async checkFrames() {
-      this.intervalId = setInterval(async () => {
-        try {
-          const response = await axios.get(`${process.env.VUE_APP_EXTRACTION_API_URL}/frames`);
-          if (response.status === 200) {
-            this.frames = response.data.map((frame) => ({
-              url: `${process.env.VUE_APP_EXTRACTION_API_URL}/frames/${frame}`,
-              prediction: null,
-            }));
-            this.clearCheckFramesInterval();
-            this.isPredicting = true;
-            for (let frame of this.frames) {
+      try {
+        const response = await axios.get(`${process.env.VUE_APP_EXTRACTION_API_URL}/frames`);
+        if (response.status === 200) {
+          this.frames = response.data.map((frame) => ({
+            url: `${process.env.VUE_APP_EXTRACTION_API_URL}/frames/${frame}`,
+            prediction: null,
+            timestamp: frame.split('_')[1].split('.')[0], // Zaman damgasını ayıkla
+            ip: '10.0.66.195' // IP adresini sabit olarak ekle
+          }));
+          this.isPredicting = true;
+          for (let frame of this.frames) {
+            if (!frame.prediction) {
               await this.predictFire(frame);
             }
-            this.isPredicting = false;
-          } else if (response.status === 202) {
-            console.log('Kare çıkarma işlemi devam ediyor...');
           }
-        } catch (error) {
-          this.errorMessage = error.response ? error.response.data : error.message;
-        } finally {
-          this.isLoading = false;
+          this.isPredicting = false;
+        } else if (response.status === 202) {
+          console.log('Kare çıkarma işlemi devam ediyor...');
         }
-      }, 3000);
+      } catch (error) {
+        this.errorMessage = error.response ? error.response.data : error.message;
+      }
     },
     async predictFire(frame) {
+      if (frame.prediction) return;
+
       try {
         const formData = new FormData();
         const response = await axios.get(frame.url, { responseType: 'blob' });
@@ -151,7 +119,14 @@ export default {
     },
     formatProbability(probability) {
       return (probability * 100).toFixed(2) + '%';
+    },
+    formatTimestamp(timestamp) {
+      const date = new Date(`${timestamp.slice(0, 4)}-${timestamp.slice(4, 6)}-${timestamp.slice(6, 8)}T${timestamp.slice(9, 11)}:${timestamp.slice(11, 13)}:${timestamp.slice(13, 15)}`);
+      return date.toLocaleString();
     }
+  },
+  mounted() {
+    this.startCapturingFrames();
   },
   beforeUnmount() {
     this.clearCheckFramesInterval();
@@ -169,50 +144,42 @@ export default {
 .card.high-risk {
   border-color: orange;
   background-color: rgba(255, 165, 0, 0.1);
-  color: orange;
+  color: orange
 }
 
 .card.risky {
   border-color: yellow;
   background-color: rgba(255, 255, 0, 0.1);
-  color: yellow;
+  color: yellow
 }
 
 .container {
   max-width: 800px;
-  margin: 0 auto;
+  margin: 0 auto
 }
 
 .card.fire-alarm {
   border-color: red;
-  animation: blink 1s infinite;
+  animation: blink 1s infinite
 }
 
 .card.no-fire {
-  border-color: green;
+  border-color: green
 }
 
 .alert {
-  margin-top: 20px;
-}
-
-.custom-file-input ~ .custom-file-label::after {
-  content: "Gözat";
-}
-
-.loading {
-  margin-top: 20px;
+  margin-top: 20px
 }
 
 @keyframes blink {
   0% {
-    border-color: red;
+    border-color: red
   }
   50% {
-    border-color: yellow;
+    border-color: yellow
   }
   100% {
-    border-color: red;
+    border-color: red
   }
 }
 </style>
