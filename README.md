@@ -32,7 +32,7 @@ This project is a Flask-based web application that extracts frames from an uploa
 
 1. Clone the repository:
     ```sh
-    git clone https://github.com/yourusername/video-fire-detection.git
+    git clone https://github.com/afnamal/Fire-Detection
     cd video-fire-detection
     ```
 
