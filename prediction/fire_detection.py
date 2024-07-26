@@ -8,6 +8,8 @@ import io
 import os
 import requests
 from dotenv import load_dotenv
+import hashlib
+import time
 
 # Ortam değişkenlerini yükle
 load_dotenv()
@@ -30,6 +32,10 @@ except Exception as e:
 # Sayaç dosyasının yolunu belirle
 counter_path = "/tmp/counter.txt"
 
+detected_fire_hashes = set()
+last_fire_time = 0
+fire_reset_interval = 60  # Yangın resetleme aralığı (saniye)
+
 def get_counter():
     """Sayaç dosyasını oku veya oluştur ve sayaç değerini döndür"""
     if not os.path.exists(counter_path):
@@ -50,12 +56,54 @@ def preprocess_image(image):
     image = np.expand_dims(image, axis=0)
     return image
 
+def get_image_hash(image):
+    """Resmin hash değerini hesapla"""
+    image_bytes = io.BytesIO()
+    image.save(image_bytes, format='JPEG')
+    image_bytes = image_bytes.getvalue()
+    return hashlib.md5(image_bytes).hexdigest()
+
+def is_corrupted_or_gray(image):
+    """Resmin bozuk veya gri tonlamalı olup olmadığını kontrol et"""
+    if image.mode not in ("L", "RGB"):
+        return False
+    
+    if image.mode == "RGB":
+        gray_image = image.convert('L')
+        histogram = gray_image.histogram()
+        total_pixels = sum(histogram)
+        if total_pixels == 0:
+            return True
+        gray_level_distribution = [float(count) / total_pixels for count in histogram]
+        max_gray_level = max(gray_level_distribution)
+        if max_gray_level > 0.9:
+            return True
+    return False
+
 def predict_fire(image):
-    """Resimde yangın olup olmadığını tahmin etme"""
+    """Resimde yangın olup olmadığını tahmin etme ve hash kontrolü yapma"""
+    global last_fire_time
+    current_time = time.time()
+    
+    # Eğer belirli bir süre geçmişse hash setini temizle
+    if current_time - last_fire_time > fire_reset_interval:
+        detected_fire_hashes.clear()
+    
+    if is_corrupted_or_gray(image):
+        return ("gray", 0, False)
+    
     processed_image = preprocess_image(image)
     predictions = model.predict(processed_image)
     fire_prob = predictions[0][0]
-    return ("fire", fire_prob) if fire_prob >= 0.5 else ("no fire", fire_prob)
+    if fire_prob >= 0.5:
+        image_hash = get_image_hash(image)
+        if image_hash in detected_fire_hashes:
+            return ("fire", fire_prob, False)
+        else:
+            detected_fire_hashes.add(image_hash)
+            last_fire_time = current_time
+            return ("fire", fire_prob, True)
+    return ("no fire", fire_prob, False)
 
 def send_telegram_message(message, image_path):
     """Telegram botuna mesaj gönderme"""
@@ -102,9 +150,9 @@ def predict():
 
     try:
         image = Image.open(io.BytesIO(file.read()))
-        prediction_class, prediction_prob = predict_fire(image)
+        prediction_class, prediction_prob, is_new_detection = predict_fire(image)
 
-        if prediction_class == "fire":
+        if prediction_class == "fire" and is_new_detection:
             message = f"Yangın Tespit Edildi! Olasılık: {prediction_prob:.2f}"
             count = get_counter()
             image_path = f"/tmp/detected_fire_{count}.jpg"

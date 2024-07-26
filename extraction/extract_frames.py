@@ -8,6 +8,8 @@ from datetime import datetime
 from dotenv import load_dotenv
 import shutil
 import requests
+import numpy as np
+from PIL import Image
 
 # .env dosyasını yükle
 load_dotenv()
@@ -17,7 +19,7 @@ CORS(app)
 
 # Geçici olarak kaydedilecek karelerin yolu
 output_folder = "frames"
-fire_detected_folder = "fire_detected"
+fire_detected_folder = "fire_detected_frames"
 completion_flag = os.path.join(output_folder, "extraction_complete.txt")
 
 # Çıktı klasörlerini oluştur
@@ -39,10 +41,28 @@ interval_lock = threading.Lock()
 telegram_token = os.getenv("BOT_TOKEN")
 chat_id = os.getenv("CHAT_ID")
 
-def send_telegram_message(message):
+detected_fire_hashes = set()
+
+def send_telegram_message(message, image_path):
     url = f"https://api.telegram.org/bot{telegram_token}/sendMessage"
     data = {"chat_id": chat_id, "text": message}
-    requests.post(url, data=data)
+    response = requests.post(url, data=data)
+    if response.status_code == 200:
+        with open(image_path, 'rb') as image_file:
+            response = requests.post(
+                f"https://api.telegram.org/bot{telegram_token}/sendPhoto",
+                data={"chat_id": chat_id},
+                files={"photo": image_file}
+            )
+            return response.status_code == 200
+    return False
+
+def get_image_hash(image):
+    """Resmin hash değerini hesapla"""
+    image_bytes = io.BytesIO()
+    image.save(image_bytes, format='JPEG')
+    image_bytes = image_bytes.getvalue()
+    return hashlib.md5(image_bytes).hexdigest()
 
 def clear_old_frames():
     """Karelerin kaydedildiği klasörü temizle"""
@@ -55,6 +75,23 @@ def clear_old_frames():
             if file_mtime < cutoff:
                 os.remove(file_path)
 
+def is_corrupted_or_gray(image):
+    """Resmin bozuk veya gri tonlamalı olup olmadığını kontrol et"""
+    if image.mode not in ("L", "RGB"):
+        return False
+    
+    if image.mode == "RGB":
+        gray_image = image.convert('L')
+        histogram = gray_image.histogram()
+        total_pixels = sum(histogram)
+        if total_pixels == 0:
+            return True
+        gray_level_distribution = [float(count) / total_pixels for count in histogram]
+        max_gray_level = max(gray_level_distribution)
+        if max_gray_level > 0.9:
+            return True
+    return False
+
 def capture_image_from_stream():
     cap = cv2.VideoCapture(rtsp_url)
     if not cap.isOpened():
@@ -63,10 +100,15 @@ def capture_image_from_stream():
     
     ret, frame = cap.read()
     if ret:
+        image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        if is_corrupted_or_gray(image):
+            print("Bozuk veya gri tonlamalı görüntü atlandı.")
+            return
+        
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         img_name = f'image_{timestamp}.jpg'
         img_path = os.path.join(output_folder, img_name)
-        cv2.imwrite(img_path, frame)
+        image.save(img_path)
         os.chmod(img_path, 0o777)  # Dosyaya tam izin ver
         print(f'{img_name} kaydedildi.')
     else:
@@ -118,36 +160,6 @@ def set_interval():
     except Exception as e:
         print(f"Error setting interval: {e}")
         return jsonify({'error': str(e)}), 500
-
-@app.route('/predict', methods=['POST'])
-def predict():
-    # Tahmin işlemleri burada gerçekleştirilir
-    # Tahmin edilen sonuç yangınsa, görüntü fire_detected klasörüne kopyalanır
-    # Örneğin, tahmin sonucunu 'fire_detected' değişkeni olarak alalım
-    fire_detected = False  # Bu, tahmin sonuçlarına göre belirlenir
-    
-    file = request.files.get('image')
-    if not file:
-        return jsonify({'error': 'No image uploaded'}), 400
-    
-    # Görüntüyü kaydet
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    img_name = f'image_{timestamp}.jpg'
-    img_path = os.path.join(output_folder, img_name)
-    file.save(img_path)
-    
-    if fire_detected:
-        fire_img_path = os.path.join(fire_detected_folder, img_name)
-        shutil.copy(img_path, fire_img_path)
-        os.chmod(fire_img_path, 0o777)
-        print(f'{img_name} yangın tespit edildi ve {fire_detected_folder} klasörüne kaydedildi.')
-
-        # Telegram mesajı gönder
-        risk_level = 'Çok Yüksek Risk' if fire_detected else 'Yangın Yok'
-        message = f"Kamera IP: {rtsp_ip}\nZaman: {timestamp}\nRisk Seviyesi: {risk_level}"
-        send_telegram_message(message)
-    
-    return jsonify({'message': 'Prediction completed.'}), 200
 
 if __name__ == '__main__':
     # Kare çıkarma iş parçacığını başlat
