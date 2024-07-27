@@ -14,10 +14,16 @@
         <button class="btn btn-primary" @click="setCaptureInterval">Güncelle</button>
       </div>
     </div>
-    <div v-if="frames.length" class="frames-section">
+    <div class="mb-4 text-center">
+      <div class="status-box">
+        <p><strong>Son Kontrol Zamanı:</strong> {{ lastCheckedTime }}</p>
+        <p><strong>Durum:</strong> {{ currentStatus }}</p>
+      </div>
+    </div>
+    <div v-if="filteredFrames.length" class="frames-section">
       <h2 class="text-center mb-4">Çıkarılan Kareler</h2>
       <div class="row">
-        <div v-for="(frame, index) in frames" :key="index" class="col-12 mb-4">
+        <div v-for="(frame, index) in filteredFrames" :key="index" class="col-12 mb-4">
           <div :class="['card', getRiskClass(frame.prediction), 'shadow-sm', 'p-3', 'mb-5', 'bg-white', 'rounded']">
             <a :href="frame.url" target="_blank" rel="noopener noreferrer">
               <img :src="frame.url" class="card-img-top" :alt="'Kare ' + (index + 1)" />
@@ -35,12 +41,16 @@
         </div>
       </div>
     </div>
+    <div class="terminal">
+      <h2 class="text-center mb-4">Log</h2>
+      <pre class="logInside">{{ logs.join('\n') }}</pre>
+    </div>
   </div>
 </template>
 
 <script>
 import axios from 'axios';
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 
 export default {
   setup() {
@@ -50,20 +60,22 @@ export default {
     const interval = ref(20);
     const intervalId = ref(null);
     const isPredicting = ref(false);
+    const lastCheckedTime = ref('');
+    const currentStatus = ref('No Fire');
+    const logs = ref([]);
 
     const rtspIp = process.env.VUE_APP_RTSP_IP;
-    
 
     const setCaptureInterval = async () => {
       try {
         const response = await axios.post(`${process.env.VUE_APP_EXTRACTION_API_URL}/set_interval`, { interval: interval.value });
         successMessage.value = response.data.message;
         errorMessage.value = '';
-        console.log('Interval set to:', interval.value);
+        addLog(`Interval set to: ${interval.value}`);
       } catch (error) {
         errorMessage.value = error.response ? error.response.data.error : error.message;
         successMessage.value = '';
-        console.error('Error setting interval:', error);
+        addLog(`Error setting interval: ${error.message}`);
       }
     };
 
@@ -83,6 +95,8 @@ export default {
     const checkFrames = async () => {
       try {
         const response = await axios.get(`${process.env.VUE_APP_EXTRACTION_API_URL}/frames`);
+        lastCheckedTime.value = new Date().toLocaleString();
+        addLog(`Checked frames at: ${lastCheckedTime.value}`);
         if (response.status === 200) {
           frames.value = response.data.map((frame) => ({
             url: `${process.env.VUE_APP_EXTRACTION_API_URL}/frames/${frame}`,
@@ -97,11 +111,14 @@ export default {
             }
           }
           isPredicting.value = false;
+          currentStatus.value = frames.value.some(frame => frame.prediction && frame.prediction.probability >= 0.5) ? 'Fire Detected' : 'No Fire';
+          addLog(`Current status: ${currentStatus.value}`);
         } else if (response.status === 202) {
-          console.log('Kare çıkarma işlemi devam ediyor...');
+          addLog('Frame extraction in progress...');
         }
       } catch (error) {
         errorMessage.value = error.response ? error.response.data : error.message;
+        addLog(`Error checking frames: ${error.message}`);
       }
     };
 
@@ -118,8 +135,10 @@ export default {
           },
         });
         frame.prediction = predictionResponse.data;
+        addLog(`Prediction for frame ${frame.url}: ${frame.prediction.predicted_class} with probability ${frame.prediction.probability}`);
       } catch (error) {
         errorMessage.value = error.response ? error.response.data : error.message;
+        addLog(`Error predicting fire for frame ${frame.url}: ${error.message}`);
       }
     };
 
@@ -150,6 +169,17 @@ export default {
       return date.toLocaleString();
     };
 
+    const filteredFrames = computed(() => {
+      return frames.value.filter(frame => frame.prediction && frame.prediction.probability >= 0.5);
+    });
+
+    const addLog = (message) => {
+      logs.value.unshift(`[${new Date().toLocaleTimeString()}] ${message}`);
+      if (logs.value.length > 100) {
+        logs.value.pop();
+      }
+    };
+
     onMounted(() => {
       startCapturingFrames();
     });
@@ -168,7 +198,11 @@ export default {
       getRiskLevel,
       formatProbability,
       formatTimestamp,
-      rtspIp
+      rtspIp,
+      filteredFrames,
+      lastCheckedTime,
+      currentStatus,
+      logs
     };
   }
 };
@@ -219,6 +253,30 @@ export default {
   transform: scale(1.05);
 }
 
+.status-box {
+  border: 1px solid #ddd;
+  padding: 10px;
+  display: inline-block;
+  border-radius: 5px;
+}
+
+.terminal {
+  background-color: #2c2525;
+  color: #0f0;
+  padding: 10px;
+  height: 200px;
+  overflow-y: scroll;
+  margin-top: 20px;
+  border-radius: 5px;
+}
+
+.terminal pre {
+  margin: 0;
+  font-family: monospace;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
 @keyframes blink {
   0% {
     border-color: red;
@@ -229,5 +287,8 @@ export default {
   100% {
     border-color: red;
   }
+}
+.logInside{
+  color: rgb(142, 143, 143);
 }
 </style>
