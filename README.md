@@ -32,14 +32,13 @@ This project is a Flask-based web application that extracts frames from an uploa
 
 1. Clone the repository:
     ```sh
-    git clone https://github.com/yourusername/video-fire-detection.git
+    git clone https://github.com/afnamal/Fire-Detection
     cd video-fire-detection
     ```
 
-2. Download the pre-trained model into the `prediction` directory:
-    ```sh
-    wget --no-check-certificate 'https://www.kaggleusercontent.com/kf/117604734/eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..W9KC660iyogH7sUxFkdRlQ.tckruepxOxc0F6DGM6gqb7qdqxjlwepbfOxyRCNH5nKJ0-T-UvFYwMyi22dP7ko1GjuXUX7UkyRaMyg4JR2DxWbK2WiP2sQrR2iIxPoYYusu45yQdaRwbelbjchYWm9-EBPGhQXd5Cra8cdJEHItWFKHOWzxU6vTanSVTT5avpqVbcOgEEA_cZxCnX3sjJCxuHfLCmKPCFLYhJyU6oYdyEdOVBZV9pRSbXByw6KZNDpES5OrVCRDOD1DQAN2x83XngwrjrOZfdZGjDi2odFeNrRMFUTpXnmdner9zFfGavnRyHFu25fxAriyWsgF1fBHaX_jukgzBdwKo8L2hnuddyJikVY6z8tHdA6CzyiA1KmhPhW22OWo_BuaEb06bsai69y71EJpU61ptxd2n-9lRm7FLHOa-T2vhrRr2SBL7qGnGcnAEiL8sWPrdtGTDlqqWeXJKZnnXhUHs1mb_XSJ71mUHo23UDSPAHMWep_zUTkzJR751oePDucc8ed18NNJv7JJz0cwJFFY7DAhPgZQUp32EeuIUJVqv6DXzuR6X-EMci0TwxQyJpGUxXhdiCo7aXBPj4u2a1Ztt_TBkSi30BCzzjuW3V6C-kj11kN2L_au5vlK92u9qgz_Tx7wMcwG981WVll25UvXEoXFePj9FS0e1ocgu4pK2mXbG3wHNtc.uTmzotaHMPeYYiUNaKDJ7g/final_model.h5' -O prediction/final_model.h5
-    ```
+2. Download the pre-trained model from Kaggle:
+    - Visit the following Kaggle page to download the model: [Fire Detection Model](https://www.kaggle.com/code/jvkchaitanya410/fire-detection-using-resnet-50-accuracy-97/output)
+    - Place the downloaded model file (`final_model.h5`) into the `prediction` directory.
 
 3. Build and run the Docker containers:
     ```sh
@@ -104,10 +103,4 @@ This project uses Docker to ensure consistent environments and easy deployment. 
 │   ├── Dockerfile         # Docker configuration for frontend
 │   └── package.json       # JavaScript dependencies for frontend
 ├── docker-compose.yml     # Docker Compose configuration
-├── final_model.h5         # Pre-trained model for fire detection (downloaded manually)
 └── README.md              # This file
-```
-
-## Acknowledgements
-
-- The pre-trained fire detection model used in this project can be downloaded from [Kaggle](https://www.kaggleusercontent.com/kf/117604734/eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..W9KC660iyogH7sUxFkdRlQ.tckruepxOxc0F6DGM6gqb7qdqxjlwepbfOxyRCNH5nKJ0-T-UvFYwMyi22dP7ko1GjuXUX7UkyRaMyg4JR2DxWbK2WiP2sQrR2iIxPoYYusu45yQdaRwbelbjchYWm9-EBPGhQXd5Cra8cdJEHItWFKHOWzxU6vTanSVTT5avpqVbcOgEEA_cZxCnX3sjJCxuHfLCmKPCFLYhJyU6oYdyEdOVBZV9pRSbXByw6KZNDpES5OrVCRDOD1DQAN2x83XngwrjrOZfdZGjDi2odFeNrRMFUTpXnmdner9zFfGavnRyHFu25fxAriyWsgF1fBHaX_jukgzBdwKo8L2hnuddyJikVY6z8tHdA6CzyiA1KmhPhW22OWo_BuaEb06bsai69y71EJpU61ptxd2n-9lRm7FLHOa-T2vhrRr2SBL7qGnGcnAEiL8sWPrdtGTDlqqWeXJKZnnXhUHs1mb_XSJ71mUHo23UDSPAHMWep_zUTkzJR751oePDucc8ed18NNJv7JJz0cwJFFY7DAhPgZQUp32EeuIUJVqv6DXzuR6X-EMci0TwxQyJpGUxXhdiCo7aXBPj4u2a1Ztt_TBkSi30BCzzjuW3V6C-kj11kN2L_au5vlK92u9qgz_Tx7wMcwG981WVll25UvXEoXFePj9FS0e1ocgu4pK2mXbG3wHNtc.uTmzotaHMPeYYiUNaKDJ7g/final_model.h5).
