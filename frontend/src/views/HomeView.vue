@@ -64,9 +64,9 @@ export default {
 
     const fetchLogs = async () => {
       try {
-        const response = await axios.get(`${process.env.VUE_APP_LOG_API_URL}/logs`);
+        const response = await axios.get(`${process.env.VUE_APP_EXTRACTION_API_URL}/logs`);
         response.data.forEach(log => {
-          addLog(log.message);
+          addLog(log);
         });
       } catch (error) {
         addLog(`Error fetching logs: ${error.message}`);

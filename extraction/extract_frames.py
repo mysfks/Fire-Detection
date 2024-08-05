@@ -21,6 +21,7 @@ CORS(app)
 output_folder = "frames"
 fire_detected_folder = "fire_detected_frames"
 completion_flag = os.path.join(output_folder, "extraction_complete.txt")
+log_file_path = "logs.txt"
 
 # Çıktı klasörlerini oluştur
 for folder in [output_folder, fire_detected_folder]:
@@ -95,14 +96,14 @@ def is_corrupted_or_gray(image):
 def capture_image_from_stream():
     cap = cv2.VideoCapture(rtsp_url)
     if not cap.isOpened():
-        print("Kamera bağlantısı kurulamadı.")
+        log_message("Kamera bağlantısı kurulamadı.")
         return
     
     ret, frame = cap.read()
     if ret:
         image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
         if is_corrupted_or_gray(image):
-            print("Bozuk veya gri tonlamalı görüntü atlandı.")
+            log_message("Bozuk veya gri tonlamalı görüntü atlandı.")
             return
         
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -110,9 +111,9 @@ def capture_image_from_stream():
         img_path = os.path.join(output_folder, img_name)
         image.save(img_path)
         os.chmod(img_path, 0o777)  # Dosyaya tam izin ver
-        print(f'{img_name} kaydedildi.')
+        log_message(f'{img_name} kaydedildi.')
     else:
-        print("Görüntü alınamadı.")
+        log_message("Görüntü alınamadı.")
     cap.release()
 
 def capture_images_periodically():
@@ -136,6 +137,7 @@ def list_frames():
         files.sort(key=lambda f: os.path.getmtime(os.path.join(output_folder, f)))
         return jsonify(files), 200
     except Exception as e:
+        log_message(f"Error listing frames: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/frames/<filename>', methods=['GET'])
@@ -148,18 +150,36 @@ def set_interval():
     try:
         data = request.get_json()
         interval = data.get('interval')
-        print(f"Received interval: {interval}")
+        log_message(f"Received interval: {interval}")
         if interval and isinstance(interval, int) and interval > 0:
             with interval_lock:
                 capture_interval = interval
-            print(f"Updated capture interval to: {capture_interval}")
+            log_message(f"Updated capture interval to: {capture_interval}")
             return jsonify({'message': 'Interval updated successfully.'}), 200
         else:
-            print("Invalid interval value received.")
+            log_message("Invalid interval value received.")
             return jsonify({'error': 'Invalid interval value.'}), 400
     except Exception as e:
-        print(f"Error setting interval: {e}")
+        log_message(f"Error setting interval: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/logs', methods=['GET'])
+def get_logs():
+    try:
+        if not os.path.exists(log_file_path):
+            return jsonify({'error': 'Log dosyası bulunamadı.'}), 404
+
+        with open(log_file_path, 'r') as log_file:
+            logs = log_file.readlines()
+
+        return jsonify(logs), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+def log_message(message):
+    """Log dosyasına mesaj yaz"""
+    with open(log_file_path, 'a') as log_file:
+        log_file.write(f'[{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}] {message}\n')
 
 if __name__ == '__main__':
     # Kare çıkarma iş parçacığını başlat
