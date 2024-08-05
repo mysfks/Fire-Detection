@@ -1,6 +1,6 @@
 <template>
   <div class="container mt-5">
-    <h1 class="text-center mb-4">Çıkarılan Kareler</h1>
+    <h1 class="text-center mb-4">Yakalanan Yangın Kareleri</h1>
     <div v-if="filteredFrames.length" class="frames-section">
       <div class="row">
         <div v-for="(frame, index) in filteredFrames" :key="index" class="col-12 mb-4">
