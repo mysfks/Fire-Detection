@@ -119,6 +119,8 @@ channel = connection.channel()
 channel.queue_declare(queue='frame_queue')
 channel.queue_declare(queue='telegram_queue')
 
+fire_detected_folder = '../extraction/fire_detected_frames'
+
 def callback(ch, method, properties, body):
     """Kuyruktan gelen mesajları işleyin"""
     try:
@@ -130,7 +132,7 @@ def callback(ch, method, properties, body):
         if prediction_class == "fire" and is_new_detection:
             message = f"Yangın Tespit Edildi! Olasılık: {prediction_prob:.2f}"
             count = get_counter()
-            image_path = f"/tmp/detected_fire_{count}.jpg"
+            image_path = os.path.join(fire_detected_folder, f"detected_fire_{count}.jpg")
             image.save(image_path)
             # Telegram mesajı için RabbitMQ'ya mesaj gönder
             telegram_message = {
@@ -169,7 +171,7 @@ def predict():
         if prediction_class == "fire" and is_new_detection:
             message = f"Yangın Tespit Edildi! Olasılık: {prediction_prob:.2f}"
             count = get_counter()
-            image_path = f"/tmp/detected_fire_{count}.jpg"
+            image_path = os.path.join(fire_detected_folder, f"detected_fire_{count}.jpg")
             image.save(image_path)
             # Telegram mesajı için RabbitMQ'ya mesaj gönder
             telegram_message = {
