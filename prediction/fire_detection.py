@@ -10,6 +10,7 @@ import requests
 from dotenv import load_dotenv
 import hashlib
 import time
+import pika
 
 # Ortam değişkenlerini yükle
 load_dotenv()
@@ -67,7 +68,7 @@ def is_corrupted_or_gray(image):
     """Resmin bozuk veya gri tonlamalı olup olmadığını kontrol et"""
     if image.mode not in ("L", "RGB"):
         return False
-    
+
     if image.mode == "RGB":
         gray_image = image.convert('L')
         histogram = gray_image.histogram()
@@ -84,14 +85,14 @@ def predict_fire(image):
     """Resimde yangın olup olmadığını tahmin etme ve hash kontrolü yapma"""
     global last_fire_time
     current_time = time.time()
-    
+
     # Eğer belirli bir süre geçmişse hash setini temizle
     if current_time - last_fire_time > fire_reset_interval:
         detected_fire_hashes.clear()
-    
+
     if is_corrupted_or_gray(image):
         return ("gray", 0, False)
-    
+
     processed_image = preprocess_image(image)
     predictions = model.predict(processed_image)
     fire_prob = predictions[0][0]
@@ -138,6 +139,37 @@ def send_telegram_message(message, image_path):
 
 app = Flask(__name__)
 CORS(app)
+
+# RabbitMQ bağlantısı
+rabbitmq_host = os.getenv('RABBITMQ_HOST', 'localhost')
+connection = pika.BlockingConnection(pika.ConnectionParameters(host=rabbitmq_host))
+channel = connection.channel()
+channel.queue_declare(queue='frame_queue')
+
+def callback(ch, method, properties, body):
+    """Kuyruktan gelen mesajları işleyin"""
+    try:
+        image = Image.open(io.BytesIO(body))
+        timestamp = properties.headers['timestamp']
+        prediction_class, prediction_prob, is_new_detection = predict_fire(image)
+        print(f"{timestamp} - Tahmin: {prediction_class}, Olasılık: {prediction_prob:.2f}")
+        
+        if prediction_class == "fire" and is_new_detection:
+            message = f"Yangın Tespit Edildi! Olasılık: {prediction_prob:.2f}"
+            count = get_counter()
+            image_path = f"/tmp/detected_fire_{count}.jpg"
+            image.save(image_path)
+            send_telegram_message(message, image_path)
+
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+    except Exception as e:
+        print(f"Hata: {str(e)}")
+        ch.basic_nack(delivery_tag=method.delivery_tag)
+
+channel.basic_consume(queue='frame_queue', on_message_callback=callback)
+
+print(" [*] Kuyruk dinleniyor. Çıkmak için CTRL+C tuşlayın.")
+channel.start_consuming()
 
 @app.route('/predict', methods=['POST'])
 def predict():

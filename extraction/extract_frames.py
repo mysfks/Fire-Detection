@@ -1,6 +1,7 @@
 import os
 import time
 import cv2
+import pika
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 import threading
@@ -10,6 +11,8 @@ import shutil
 import requests
 import numpy as np
 from PIL import Image
+import io
+import hashlib
 
 # .env dosyasını yükle
 load_dotenv()
@@ -41,6 +44,12 @@ interval_lock = threading.Lock()
 
 telegram_token = os.getenv("BOT_TOKEN")
 chat_id = os.getenv("CHAT_ID")
+
+# RabbitMQ bağlantısı
+rabbitmq_host = os.getenv('RABBITMQ_HOST', 'localhost')
+connection = pika.BlockingConnection(pika.ConnectionParameters(host=rabbitmq_host))
+channel = connection.channel()
+channel.queue_declare(queue='frame_queue')
 
 detected_fire_hashes = set()
 
@@ -80,7 +89,7 @@ def is_corrupted_or_gray(image):
     """Resmin bozuk veya gri tonlamalı olup olmadığını kontrol et"""
     if image.mode not in ("L", "RGB"):
         return False
-    
+
     if image.mode == "RGB":
         gray_image = image.convert('L')
         histogram = gray_image.histogram()
@@ -98,20 +107,30 @@ def capture_image_from_stream():
     if not cap.isOpened():
         log_message("Kamera bağlantısı kurulamadı.")
         return
-    
+
     ret, frame = cap.read()
     if ret:
         image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
         if is_corrupted_or_gray(image):
             log_message("Bozuk veya gri tonlamalı görüntü atlandı.")
             return
-        
+
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        img_name = f'image_{timestamp}.jpg'
+        img_name = f"image_{timestamp}.jpg"
         img_path = os.path.join(output_folder, img_name)
         image.save(img_path)
         os.chmod(img_path, 0o777)  # Dosyaya tam izin ver
-        log_message(f'{img_name} kaydedildi.')
+        log_message(f"{img_name} kaydedildi.")
+
+        # RabbitMQ'ya görüntüyü gönder
+        _, buffer = cv2.imencode('.jpg', frame)
+        channel.basic_publish(exchange='',
+                              routing_key='frame_queue',
+                              body=buffer.tobytes(),
+                              properties=pika.BasicProperties(
+                                  headers={'timestamp': timestamp}
+                              ))
+        log_message(f"{timestamp} - Kare RabbitMQ'ya gönderildi.")
     else:
         log_message("Görüntü alınamadı.")
     cap.release()
