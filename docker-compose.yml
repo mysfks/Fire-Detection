@@ -27,6 +27,19 @@ services:
     env_file:
       - .env  # .env dosyasını backend2 servisine ekle
 
+  telegram_service:
+    build:
+      context: ./telegram_service
+      dockerfile: Dockerfile
+    ports:
+      - "5002:5002"
+    volumes:
+      - ./telegram_service:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    env_file:
+      - .env  # .env dosyasını telegram servisine ekle
+
   frontend:
     image: node:14
     working_dir: /app

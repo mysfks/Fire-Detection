@@ -6,11 +6,10 @@ import numpy as np
 from PIL import Image
 import io
 import os
-import requests
-from dotenv import load_dotenv
 import hashlib
 import time
 import pika
+from dotenv import load_dotenv
 
 # Ortam değişkenlerini yükle
 load_dotenv()
@@ -106,37 +105,6 @@ def predict_fire(image):
             return ("fire", fire_prob, True)
     return ("no fire", fire_prob, False)
 
-def send_telegram_message(message, image_path):
-    """Telegram botuna mesaj gönderme"""
-    bot_token = os.getenv('BOT_TOKEN')
-    chat_id = os.getenv('CHAT_ID')
-    print(f"Bot token: {bot_token}")
-    print(f"Chat ID: {chat_id}")
-    telegram_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-    telegram_photo_url = f"https://api.telegram.org/bot{bot_token}/sendPhoto"
-    
-    try:
-        response = requests.post(telegram_url, data={
-            'chat_id': chat_id,
-            'text': message,
-        })
-        if response.status_code != 200:
-            print(f"Telegram mesaj gönderilemedi: {response.text}")
-            return False
-
-        with open(image_path, 'rb') as image_file:
-            response = requests.post(telegram_photo_url, data={
-                'chat_id': chat_id,
-            }, files={'photo': image_file})
-            if response.status_code != 200:
-                print(f"Telegram fotoğraf gönderilemedi: {response.text}")
-                return False
-        
-        return True
-    except Exception as e:
-        print(f"Telegram mesaj gönderilemedi: {e}")
-        return False
-
 app = Flask(__name__)
 CORS(app)
 
@@ -145,6 +113,7 @@ rabbitmq_host = os.getenv('RABBITMQ_HOST', 'localhost')
 connection = pika.BlockingConnection(pika.ConnectionParameters(host=rabbitmq_host))
 channel = connection.channel()
 channel.queue_declare(queue='frame_queue')
+channel.queue_declare(queue='telegram_queue')
 
 def callback(ch, method, properties, body):
     """Kuyruktan gelen mesajları işleyin"""
@@ -159,7 +128,16 @@ def callback(ch, method, properties, body):
             count = get_counter()
             image_path = f"/tmp/detected_fire_{count}.jpg"
             image.save(image_path)
-            send_telegram_message(message, image_path)
+            # Telegram mesajı için RabbitMQ'ya mesaj gönder
+            telegram_message = {
+                'chat_id': os.getenv('CHAT_ID'),
+                'bot_token': os.getenv('BOT_TOKEN'),
+                'message': message,
+                'image_path': image_path
+            }
+            channel.basic_publish(exchange='',
+                                  routing_key='telegram_queue',
+                                  body=str(telegram_message))
 
         ch.basic_ack(delivery_tag=method.delivery_tag)
     except Exception as e:
@@ -189,7 +167,16 @@ def predict():
             count = get_counter()
             image_path = f"/tmp/detected_fire_{count}.jpg"
             image.save(image_path)
-            send_telegram_message(message, image_path)
+            # Telegram mesajı için RabbitMQ'ya mesaj gönder
+            telegram_message = {
+                'chat_id': os.getenv('CHAT_ID'),
+                'bot_token': os.getenv('BOT_TOKEN'),
+                'message': message,
+                'image_path': image_path
+            }
+            channel.basic_publish(exchange='',
+                                  routing_key='telegram_queue',
+                                  body=str(telegram_message))
 
         return jsonify({'predicted_class': prediction_class, 'probability': float(prediction_prob)})
     except Exception as e:
