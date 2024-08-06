@@ -46,8 +46,11 @@ telegram_token = os.getenv("BOT_TOKEN")
 chat_id = os.getenv("CHAT_ID")
 
 # RabbitMQ bağlantısı
-rabbitmq_host = os.getenv('RABBITMQ_HOST', 'localhost')
-connection = pika.BlockingConnection(pika.ConnectionParameters(host=rabbitmq_host))
+rabbitmq_host = os.getenv('RABBITMQ_HOST', 'rabbitmq')
+rabbitmq_user = os.getenv('RABBITMQ_USER', 'guest')
+rabbitmq_pass = os.getenv('RABBITMQ_PASS', 'guest')
+credentials = pika.PlainCredentials(rabbitmq_user, rabbitmq_pass)
+connection = pika.BlockingConnection(pika.ConnectionParameters(host=rabbitmq_host, credentials=credentials))
 channel = connection.channel()
 channel.queue_declare(queue='frame_queue')
 

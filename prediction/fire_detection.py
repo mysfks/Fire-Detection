@@ -10,6 +10,7 @@ import hashlib
 import time
 import pika
 from dotenv import load_dotenv
+import json
 
 # Ortam değişkenlerini yükle
 load_dotenv()
@@ -109,8 +110,11 @@ app = Flask(__name__)
 CORS(app)
 
 # RabbitMQ bağlantısı
-rabbitmq_host = os.getenv('RABBITMQ_HOST', 'localhost')
-connection = pika.BlockingConnection(pika.ConnectionParameters(host=rabbitmq_host))
+rabbitmq_host = os.getenv('RABBITMQ_HOST', 'rabbitmq')
+rabbitmq_user = os.getenv('RABBITMQ_USER', 'guest')
+rabbitmq_pass = os.getenv('RABBITMQ_PASS', 'guest')
+credentials = pika.PlainCredentials(rabbitmq_user, rabbitmq_pass)
+connection = pika.BlockingConnection(pika.ConnectionParameters(host=rabbitmq_host, credentials=credentials))
 channel = connection.channel()
 channel.queue_declare(queue='frame_queue')
 channel.queue_declare(queue='telegram_queue')
@@ -137,7 +141,7 @@ def callback(ch, method, properties, body):
             }
             channel.basic_publish(exchange='',
                                   routing_key='telegram_queue',
-                                  body=str(telegram_message))
+                                  body=json.dumps(telegram_message))
 
         ch.basic_ack(delivery_tag=method.delivery_tag)
     except Exception as e:
@@ -176,7 +180,7 @@ def predict():
             }
             channel.basic_publish(exchange='',
                                   routing_key='telegram_queue',
-                                  body=str(telegram_message))
+                                  body=json.dumps(telegram_message))
 
         return jsonify({'predicted_class': prediction_class, 'probability': float(prediction_prob)})
     except Exception as e:
