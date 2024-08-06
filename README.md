@@ -33,7 +33,7 @@ This project is a Flask-based web application that extracts frames from an uploa
 1. Clone the repository:
     ```sh
     git clone https://github.com/afnamal/Fire-Detection
-    cd video-fire-detection
+    cd Fire-Detection
     ```
 
 2. Download the pre-trained model from Kaggle:
@@ -45,7 +45,10 @@ This project is a Flask-based web application that extracts frames from an uploa
     docker-compose up --build
     ```
 
-4. The application will be available at `http://localhost:5001` for video upload and `http://localhost:5000` for fire detection.
+4. The application will be available at:
+    - `http://localhost:5001` for video upload
+    - `http://localhost:5000` for fire detection
+    - `http://localhost:15672` for RabbitMQ management interface (default credentials: `guest`/`guest`).
 
 ## API Endpoints
 
@@ -86,6 +89,10 @@ This project is a Flask-based web application that extracts frames from an uploa
 
 This project uses Docker to ensure consistent environments and easy deployment. The `Dockerfile` and `docker-compose.yml` files are configured to set up the application with all necessary dependencies.
 
+### RabbitMQ Management Interface
+
+The RabbitMQ management interface is accessible at `http://localhost:15672` with the default credentials `guest`/`guest`. You can monitor the message queue and other RabbitMQ parameters from this interface.
+
 ## Project Structure
 
 ```plaintext
@@ -97,6 +104,7 @@ This project uses Docker to ensure consistent environments and easy deployment. 
 ├── prediction             # Backend for fire prediction
 │   ├── fire_detection.py  # Fire detection Flask application
 │   ├── Dockerfile         # Docker configuration for fire detection
+│   ├── final_model.h5     # Pre-trained model for fire detection (downloaded from Kaggle)
 │   └── requirements.txt   # Python dependencies for fire detection
 ├── frontend               # Frontend Vue.js application
 │   ├── app.vue            # Main Vue.js component
