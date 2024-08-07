@@ -1,5 +1,5 @@
 # Temel imaj olarak Python 3.9 kullan
-FROM python:3.9
+FROM python:3.8
 
 # Çalışma dizinini ayarla
 WORKDIR /app

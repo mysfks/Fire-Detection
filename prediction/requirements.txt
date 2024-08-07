@@ -4,3 +4,4 @@ tensorflow
 Pillow
 requests
 python-dotenv
+pika
