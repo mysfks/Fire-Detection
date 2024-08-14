@@ -112,3 +112,4 @@ The RabbitMQ management interface is accessible at `http://localhost:15672` with
 │   └── package.json       # JavaScript dependencies for frontend
 ├── docker-compose.yml     # Docker Compose configuration
 └── README.md              # This file
+
