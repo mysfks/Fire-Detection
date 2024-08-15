@@ -11,7 +11,7 @@ This project is a Flask-based web application that extracts frames from an uploa
 
 ## Workflow
 
-1. **Upload Video**: Users can upload a video file through a simple web interface.
+1. **Upload Video**: Users can upload a video file through a simple web interface. 
 2. **Extract Frames**: The uploaded video is processed, and frames are extracted at regular intervals.
 3. **Fire Detection**: Each extracted frame is analyzed using a TensorFlow model to detect the presence of fire.
 4. **Telegram Notification**: If fire is detected in any frame, a message is sent to a specified Telegram chat.
