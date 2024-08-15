@@ -53,7 +53,7 @@ This project is a Flask-based web application that extracts frames from an uploa
 ## API Endpoints
 
 - **Upload Video**: `POST /upload_video`
-    - Uploads a video file and starts the frame extraction process.
+    - Uploads a video file and starts the frame extraction process. 
     - Example using `curl`:
         ```sh
         curl -F "video=@path/to/your/video.ts" http://localhost:5001/upload_video
